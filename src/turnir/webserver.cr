@@ -82,7 +82,7 @@ module Turnir::Webserver
           context.response.status = HTTP::Status::INTERNAL_SERVER_ERROR
           context.response.content_type = "text/plain"
           context.response.print "Internal Server Error"
-          print "WebServer Error: "
+          log "WebServer Error: "
           log ex
           log ex.backtrace
         end
