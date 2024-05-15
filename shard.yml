@@ -1,0 +1,13 @@
+name: turnir-crystal
+version: 0.1.0
+
+authors:
+  - your-name-here <your-email-here>
+
+targets:
+  turnir-crystal:
+    main: src/turnir-crystal.cr
+
+crystal: '>= 1.12.1'
+
+license: MIT
