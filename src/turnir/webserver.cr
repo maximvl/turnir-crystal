@@ -9,11 +9,17 @@ module Turnir::Webserver
   URL_MAP = {
     /^\/v2\/turnir-api\/votes$/ => ->get_votes(HTTP::Server::Context),
     /^\/v2\/turnir-api\/votes\/reset$/ => ->reset_votes(HTTP::Server::Context),
-    /^\/v2\/turnir-api\/presets$/ => ->create_preset(HTTP::Server::Context),
+    /^\/v2\/turnir-api\/presets$/ => ->save_preset(HTTP::Server::Context),
     /^\/v2\/turnir-api\/presets\/(.+)$/ => ->get_or_update_preset(HTTP::Server::Context),
   }
 
   class MethodNotSupported < Exception
+  end
+
+  struct PresetRequest
+    include JSON::Serializable
+    getter title : String
+    getter options : Array(String)
   end
 
   def log(msg)
@@ -21,10 +27,30 @@ module Turnir::Webserver
     puts msg
   end
 
+  def gen_random_id(size = 8)
+    r = Random.new
+    r.urlsafe_base64(size)
+  end
+
+  def get_session_id(context : HTTP::Server::Context)
+    cookies = context.request.cookies
+    if cookies.has_key?("session_id")
+      session_id = cookies["session_id"].value
+      # log "Session ID: #{session_id}"
+    else
+      session_id = gen_random_id
+      cookie = HTTP::Cookie.new "session_id", session_id
+      context.response.cookies << cookie
+      # log "No session ID"
+    end
+    session_id
+  end
+
   def get_votes(context : HTTP::Server::Context)
     if context.request.method != "GET"
       raise MethodNotSupported.new("Method #{context.request.method} not supported")
     end
+    get_session_id(context)
     query_params = context.request.query_params
     ts_filter = query_params.fetch("ts", "0").to_i
     Turnir.ensure_websocket_running
@@ -42,20 +68,111 @@ module Turnir::Webserver
     context.response.print ({"status" => "ok"}).to_json
   end
 
-  def create_preset(context : HTTP::Server::Context)
+  def save_preset(context : HTTP::Server::Context)
     if context.request.method != "POST"
       raise MethodNotSupported.new("Method #{context.request.method} not supported")
     end
+    session_id = get_session_id(context)
+
+    request = nil
+    begin
+      context.request.body.try do |data|
+        request = PresetRequest.from_json(data)
+      end
+    rescue
+      request = nil
+    end
+
+    if request.nil?
+      context.response.status = HTTP::Status::BAD_REQUEST
+      context.response.content_type = "text/plain"
+      context.response.print "Bad Request body"
+      return
+    end
+
+    preset = Turnir::DbStorage::Preset.new(
+      id: gen_random_id(6),
+      owner_id: session_id,
+      title: request.title,
+      created_at: Time.utc.to_unix,
+      updated_at: Time.utc.to_unix,
+      options: request.options,
+    )
+    Turnir::DbStorage.save_preset(preset)
+
     context.response.content_type = "application/json"
-    context.response.print ({"status" => "ok"}).to_json
+    context.response.print preset.to_json
   end
 
   def get_or_update_preset(context : HTTP::Server::Context)
-    if context.request.method != "GET" && context.request.method != "PUT"
-      raise MethodNotSupported.new("Method #{context.request.method} not supported")
+    if context.request.method == "GET"
+      get_preset(context)
+    elsif context.request.method == "POST"
+      update_preset(context)
+    else
+     raise MethodNotSupported.new("Method #{context.request.method} not supported")
+    end
+  end
+
+  def get_preset(context : HTTP::Server::Context)
+    session_id = get_session_id(context)
+    preset_id = context.request.path.split('/', remove_empty: true)[-1]
+    preset = Turnir::DbStorage.get_preset(preset_id)
+    if preset.nil?
+      context.response.status = HTTP::Status::NOT_FOUND
+      context.response.content_type = "text/plain"
+      context.response.print "Not Found"
+      return
+    end
+    if preset.owner_id != session_id
+      context.response.status = HTTP::Status::FORBIDDEN
+      context.response.content_type = "text/plain"
+      context.response.print "Forbidden"
+      return
     end
     context.response.content_type = "application/json"
-    context.response.print ({"status" => "ok"}).to_json
+    context.response.print preset.to_json
+  end
+
+  def update_preset(context : HTTP::Server::Context)
+    session_id = get_session_id(context)
+    preset_id = context.request.path.split('/', remove_empty: true)[-1]
+    preset = Turnir::DbStorage.get_preset(preset_id)
+    if preset.nil?
+      context.response.status = HTTP::Status::NOT_FOUND
+      context.response.content_type = "text/plain"
+      context.response.print "Not Found"
+      return
+    end
+    if preset.owner_id != session_id
+      context.response.status = HTTP::Status::FORBIDDEN
+      context.response.content_type = "text/plain"
+      context.response.print "Forbidden"
+      return
+    end
+
+    request = nil
+    begin
+      context.request.body.try do |data|
+        request = PresetRequest.from_json(data)
+      end
+    rescue
+      request = nil
+    end
+    if request.nil?
+      context.response.status = HTTP::Status::BAD_REQUEST
+      context.response.content_type = "text/plain"
+      context.response.print "Bad Request body"
+      return
+    end
+
+    preset.title = request.title
+    preset.options = request.options
+    preset.updated_at = Time.utc.to_unix
+    Turnir::DbStorage.save_preset(preset)
+
+    context.response.content_type = "application/json"
+    context.response.print preset.to_json
   end
 
   def start
@@ -64,7 +181,12 @@ module Turnir::Webserver
       path = context.request.path
       method = context.request.method
       query = context.request.query
-      log "> #{method} #{path}?#{query}"
+
+      if query
+        log "> #{method} #{path}?#{query}"
+      else
+        log "> #{method} #{path}"
+      end
 
       url_match = URL_MAP.each.find do |pattern, handler|
         path.match(pattern)
