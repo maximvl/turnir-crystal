@@ -16,7 +16,7 @@ module Turnir::VoteStorage
   def get_votes(since : Int32)
     @@last_access = Time.utc
     StorageMutex.synchronize do
-      Storage.select { |vote| vote.timestamp >= since }
+      Storage.select { |vote| vote.ts >= since }
     end
   end
 

@@ -2,6 +2,7 @@ require "http/server"
 require "json"
 require "./ws_client"
 require "./vote_storage"
+require "./config"
 
 module Turnir::Webserver
   extend self
@@ -56,7 +57,7 @@ module Turnir::Webserver
     Turnir.ensure_websocket_running
     context.response.content_type = "application/json"
     items = Turnir::VoteStorage.get_votes(ts_filter)
-    context.response.print items.to_json
+    context.response.print ({"poll_votes" => items}).to_json
   end
 
   def reset_votes(context : HTTP::Server::Context)
@@ -218,8 +219,8 @@ module Turnir::Webserver
     end
 
     log "Starting webserver"
-    ip = ENV.fetch("IP", "127.0.0.1")
-    port = ENV.fetch("PORT", "8080").to_i
+    ip = Turnir::Config.webserver_ip
+    port = Turnir::Config.webserver_port
 
     address = server.bind_tcp ip, port
     log "Listening on http://#{address}"

@@ -4,6 +4,7 @@ require "http/client"
 
 require "./chat_message"
 require "../vote_storage"
+require "../config"
 
 module Turnir::WSClient
   extend self
@@ -23,12 +24,12 @@ module Turnir::WSClient
     include JSON::Serializable
 
     property id : Int32
-    property text : String
+    property message : String
     property user_id : Int32
-    property user_name : String
-    property timestamp : Int32
+    property username : String
+    property ts : Int32
 
-    def initialize(@id : Int32, @text : String, @user_id : Int32, @user_name : String, @timestamp : Int32)
+    def initialize(@id : Int32, @message : String, @user_id : Int32, @username : String, @ts : Int32)
     end
   end
 
@@ -106,17 +107,17 @@ module Turnir::WSClient
 
     # log "text: #{text}"
 
-    user_name = parsed.push.pub.data.data.author.displayName
+    username = parsed.push.pub.data.data.author.displayName
     user_id = parsed.push.pub.data.data.author.id
     created_at = parsed.push.pub.data.data.createdAt
     message_id = parsed.push.pub.data.data.id
 
     return VoteMessage.new(
       id: message_id,
-      text: text,
+      message: text,
       user_id: user_id,
-      user_name: user_name,
-      timestamp: created_at,
+      username: username,
+      ts: created_at,
     )
   end
 
@@ -132,8 +133,10 @@ module Turnir::WSClient
     }
     @@websocket.try { |ws| ws.send(login_message.to_json) }
 
+    chat_id = Turnir::Config.vk_chat_id
+
     subscribe_message = {
-      "subscribe" => {"channel" => "channel-chat:6367818"},
+      "subscribe" => {"channel" => chat_id},
       "id" => 2,
     }
     @@websocket.try { |ws| ws.send(subscribe_message.to_json) }
