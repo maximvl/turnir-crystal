@@ -125,12 +125,6 @@ module Turnir::Webserver
       context.response.print "Not Found"
       return
     end
-    if preset.owner_id != session_id
-      context.response.status = HTTP::Status::FORBIDDEN
-      context.response.content_type = "text/plain"
-      context.response.print "Forbidden"
-      return
-    end
     context.response.content_type = "application/json"
     context.response.print preset.to_json
   end
@@ -141,14 +135,14 @@ module Turnir::Webserver
     preset = Turnir::DbStorage.get_preset(preset_id)
     if preset.nil?
       context.response.status = HTTP::Status::NOT_FOUND
-      context.response.content_type = "text/plain"
-      context.response.print "Not Found"
+      context.response.content_type = "application/json"
+      context.response.print ({"error" => "Not found"}).to_json
       return
     end
     if preset.owner_id != session_id
       context.response.status = HTTP::Status::FORBIDDEN
-      context.response.content_type = "text/plain"
-      context.response.print "Forbidden"
+      context.response.content_type = "application/json"
+      context.response.print ({"error" => "You are not the owner"}).to_json
       return
     end
 
