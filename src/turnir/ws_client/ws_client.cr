@@ -85,6 +85,7 @@ module Turnir::WSClient
       parsed = ChatMessage.from_json(json_message)
     rescue ex
       log "Failed to parse message: #{ex.inspect}"
+      log "Message: #{json_message.inspect}"
       return nil
     end
 
@@ -99,13 +100,22 @@ module Turnir::WSClient
 
     text = String.build do |io|
       message_data.each do |data|
-        if data.type == "text"
-          io << Array(JSON::Any).from_json(data.content)[0].to_s
+        if data.is_a?(Turnir::WSClient::ContentData) && data.type == "text" && !data.content.empty?
+          begin
+            io << Array(JSON::Any).from_json(data.content)[0].to_s
+          rescue ex
+            log "Failed to parse content data: #{ex.inspect}"
+            log "Content: #{data.inspect}"
+          end
         end
       end
     end
 
     # log "text: #{text}"
+    text = text.strip
+    if text.empty?
+      return nil
+    end
 
     username = parsed.push.pub.data.data.author.displayName
     user_id = parsed.push.pub.data.data.author.id
@@ -134,6 +144,7 @@ module Turnir::WSClient
     @@websocket.try { |ws| ws.send(login_message.to_json) }
 
     chat_id = Turnir::Config.vk_chat_id
+    log("Chat id: #{chat_id}")
 
     subscribe_message = {
       "subscribe" => {"channel" => chat_id},

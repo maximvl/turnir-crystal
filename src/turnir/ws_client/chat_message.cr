@@ -27,7 +27,7 @@ module Turnir::WSClient
     property id : Int32
     property createdAt : Int32
     property author : Author
-    property data : Array(ContentData)
+    property data : Array(ContentData | IgnoredData)
   end
 
   struct Author
@@ -40,5 +40,9 @@ module Turnir::WSClient
     include JSON::Serializable
     property type : String
     property content : String
+  end
+
+  struct IgnoredData
+    include JSON::Serializable
   end
 end

@@ -27,7 +27,7 @@ module Turnir
         @@websocket_fiber = nil
         Turnir::VoteStorage.clear
       end
-      sleep 60
+      sleep 60.seconds
     end
   end
 end
