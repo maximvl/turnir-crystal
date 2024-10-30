@@ -1,19 +1,19 @@
-require "./ws_client/ws_client"
+require "./message"
 
-module Turnir::VoteStorage
+module Turnir::ChatStorage
   extend self
 
-  Storage = Array(Turnir::WSClient::VoteMessage).new
+  Storage = Array(Turnir::ChatStorage::Types::ChatMessage).new
   StorageMutex = Mutex.new
   @@last_access = Time.utc
 
-  def add_vote(vote)
+  def add_message(msg : Turnir::ChatStorage::Types::ChatMessage)
     StorageMutex.synchronize do
-      Storage << vote
+      Storage << msg
     end
   end
 
-  def get_votes(since : Int32)
+  def get_messages(since : Int32)
     @@last_access = Time.utc
     StorageMutex.synchronize do
       Storage.select { |vote| vote.ts >= since }
@@ -29,4 +29,5 @@ module Turnir::VoteStorage
   def should_stop_websocket?
      @@last_access + 15.minutes < Time.utc
   end
+
 end

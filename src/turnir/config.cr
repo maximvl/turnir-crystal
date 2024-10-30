@@ -13,6 +13,6 @@ module Turnir::Config
   end
 
   def vk_chat_id
-    ENV.fetch("VK_CHAT_ID", ROADHOUSE_CHAT)
+    ENV.fetch("VK_CHAT_ID", LASQA_CHAT)
   end
 end

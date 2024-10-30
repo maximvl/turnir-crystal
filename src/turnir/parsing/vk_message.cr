@@ -1,6 +1,6 @@
 require "json"
 
-module Turnir::WSClient
+module Turnir::Parsing::VkMessage
   struct ChatMessage
     include JSON::Serializable
     property push : Push
@@ -34,6 +34,11 @@ module Turnir::WSClient
     include JSON::Serializable
     property id : Int32
     property displayName : String
+    property nickColor : Int32
+    property isChatModerator : Bool
+    property isChannelModerator : Bool
+    property roles : Array(Role)
+    property badges : Array(Badge)
   end
 
   struct ContentData
@@ -44,5 +49,27 @@ module Turnir::WSClient
 
   struct IgnoredData
     include JSON::Serializable
+  end
+
+  struct Role
+    include JSON::Serializable
+    property id : String
+    property name : String
+    property largeUrl : String
+    property priority : Int32
+  end
+
+  struct Badge
+    include JSON::Serializable
+    property id : String
+    property name : String
+    property largeUrl : String
+    property achievement : Achievement
+  end
+
+  struct Achievement
+    include JSON::Serializable
+    property name : String
+    property type : String
   end
 end

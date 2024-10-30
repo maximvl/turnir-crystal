@@ -21,11 +21,11 @@ module Turnir
 
   def websocket_watcher
     loop do
-      if Turnir::VoteStorage.should_stop_websocket? && @@websocket_fiber
+      if Turnir::ChatStorage.should_stop_websocket? && @@websocket_fiber
         puts "Stopping websocket"
         WSClient.stop
         @@websocket_fiber = nil
-        Turnir::VoteStorage.clear
+        Turnir::ChatStorage.clear
       end
       sleep 60.seconds
     end

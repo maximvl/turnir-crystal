@@ -2,8 +2,8 @@ require "json"
 require "xml"
 require "http/client"
 
-require "./chat_message"
-require "../vote_storage"
+require "../parsing/vk_message"
+require "../chat_storage/storage"
 require "../config"
 
 module Turnir::WSClient
@@ -18,19 +18,6 @@ module Turnir::WSClient
   def log(msg)
     print "[WSClient] "
     puts msg
-  end
-
-  struct VoteMessage
-    include JSON::Serializable
-
-    property id : Int32
-    property message : String
-    property user_id : Int32
-    property username : String
-    property ts : Int32
-
-    def initialize(@id : Int32, @message : String, @user_id : Int32, @username : String, @ts : Int32)
-    end
   end
 
   def start
@@ -82,7 +69,7 @@ module Turnir::WSClient
 
   def parse_message(json_message)
     begin
-      parsed = ChatMessage.from_json(json_message)
+      parsed = Turnir::Parsing::VkMessage::ChatMessage.from_json(json_message)
     rescue ex
       log "Failed to parse message: #{ex.inspect}"
       log "Message: #{json_message.inspect}"
@@ -100,7 +87,7 @@ module Turnir::WSClient
 
     text = String.build do |io|
       message_data.each do |data|
-        if data.is_a?(Turnir::WSClient::ContentData) && data.type == "text" && !data.content.empty?
+        if data.is_a?(Turnir::Parsing::VkMessage::ContentData) && data.type == "text" && !data.content.empty?
           begin
             io << Array(JSON::Any).from_json(data.content)[0].to_s
           rescue ex
@@ -122,18 +109,15 @@ module Turnir::WSClient
     created_at = parsed.push.pub.data.data.createdAt
     message_id = parsed.push.pub.data.data.id
 
-    return VoteMessage.new(
-      id: message_id,
-      message: text,
-      user_id: user_id,
-      username: username,
-      ts: created_at,
+    return Turnir::ChatStorage::Types::ChatMessage.from_vk_message(
+      message: parsed,
+      text: text,
     )
   end
 
-  def handle_message(message : VoteMessage)
-    log "Vote Message: #{message.inspect}"
-    Turnir::VoteStorage.add_vote message
+  def handle_message(message : Turnir::ChatStorage::Types::ChatMessage)
+    log "VK Message: #{message.inspect}"
+    Turnir::ChatStorage.add_message(message)
   end
 
   def send_initial_messages(vk_token : String)

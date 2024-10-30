@@ -1,7 +1,7 @@
 require "http/server"
 require "json"
 require "./ws_client"
-require "./vote_storage"
+require "./chat_storage/storage"
 require "./config"
 
 module Turnir::Webserver
@@ -12,6 +12,7 @@ module Turnir::Webserver
     /^\/v2\/turnir-api\/votes\/reset$/ => ->reset_votes(HTTP::Server::Context),
     /^\/v2\/turnir-api\/presets$/ => ->save_preset(HTTP::Server::Context),
     /^\/v2\/turnir-api\/presets\/(.+)$/ => ->get_or_update_preset(HTTP::Server::Context),
+    /^\/v2\/turnir-api\/kp_title$/ => ->get_kp_title(HTTP::Server::Context),
   }
 
   class MethodNotSupported < Exception
@@ -56,15 +57,15 @@ module Turnir::Webserver
     ts_filter = query_params.fetch("ts", "0").to_i
     Turnir.ensure_websocket_running
     context.response.content_type = "application/json"
-    items = Turnir::VoteStorage.get_votes(ts_filter)
-    context.response.print ({"poll_votes" => items}).to_json
+    items = Turnir::ChatStorage.get_messages(ts_filter)
+    context.response.print ({"chat_messages" => items}).to_json
   end
 
   def reset_votes(context : HTTP::Server::Context)
     if context.request.method != "POST"
       raise MethodNotSupported.new("Method #{context.request.method} not supported")
     end
-    Turnir::VoteStorage.clear
+    Turnir::ChatStorage.clear
     context.response.content_type = "application/json"
     context.response.print ({"status" => "ok"}).to_json
   end
