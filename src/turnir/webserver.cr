@@ -12,7 +12,6 @@ module Turnir::Webserver
     /^\/v2\/turnir-api\/votes\/reset$/ => ->reset_votes(HTTP::Server::Context),
     /^\/v2\/turnir-api\/presets$/ => ->save_preset(HTTP::Server::Context),
     /^\/v2\/turnir-api\/presets\/(.+)$/ => ->get_or_update_preset(HTTP::Server::Context),
-    /^\/v2\/turnir-api\/kp_title$/ => ->get_kp_title(HTTP::Server::Context),
   }
 
   class MethodNotSupported < Exception
