@@ -9,12 +9,14 @@ module Turnir::ChatStorage::Types
     property ts : Int32
     property message : String
     property user : ChatUser
+    property vk_fields : VkMessageFields
 
-    def initialize(id : Int32, ts : Int32, message : String, user : ChatUser)
+    def initialize(id : Int32, ts : Int32, message : String, user : ChatUser, vkFields : VkMessageFields)
         @id = id
         @ts = ts
         @message = message
         @user = user
+        @vk_fields = vkFields
     end
 
     def self.from_vk_message(message : Turnir::Parsing::VkMessage::ChatMessage, text : String, mentions : Array(Turnir::Parsing::VkMessage::ContentDataMention))
@@ -26,17 +28,17 @@ module Turnir::ChatStorage::Types
       username = author.displayName
       user_id = author.id
 
-      customFields = VkCustomFields.new(
+      customFields = VkUserFields.new(
         nickColor: author.nickColor,
         isChatModerator: author.isChatModerator,
         isChannelModerator: author.isChannelModerator,
         roles: author.roles,
         badges: author.badges,
-        mentions: mentions,
       )
 
       user = ChatUser.new(id: user_id, username: username, vk_fields: customFields)
-      new(id: message_id, ts: created_at, message: text.downcase, user: user)
+      vkFields = VkMessageFields.new(mentions)
+      new(id: message_id, ts: created_at, message: text.downcase, user: user, vkFields: vkFields)
     end
   end
 end
