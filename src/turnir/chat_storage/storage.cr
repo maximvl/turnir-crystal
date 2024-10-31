@@ -13,10 +13,10 @@ module Turnir::ChatStorage
     end
   end
 
-  def get_messages(since : Int32)
+  def get_messages(since : Int32, text_filter : String)
     @@last_access = Time.utc
     StorageMutex.synchronize do
-      Storage.select { |vote| vote.ts >= since }
+      Storage.select { |vote| vote.ts >= since && vote.message.includes?(text_filter) }
     end
   end
 

@@ -54,9 +54,10 @@ module Turnir::Webserver
     get_session_id(context)
     query_params = context.request.query_params
     ts_filter = query_params.fetch("ts", "0").to_i
+    text_filter = query_params.fetch("text_filter", "")
     Turnir.ensure_websocket_running
     context.response.content_type = "application/json"
-    items = Turnir::ChatStorage.get_messages(ts_filter)
+    items = Turnir::ChatStorage.get_messages(ts_filter, text_filter.downcase)
     context.response.print ({"chat_messages" => items}).to_json
   end
 

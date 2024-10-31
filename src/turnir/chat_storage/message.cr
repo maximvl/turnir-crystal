@@ -35,7 +35,7 @@ module Turnir::ChatStorage::Types
       )
 
       user = ChatUser.new(id: user_id, username: username, vk_fields: customFields)
-      new(id: message_id, ts: created_at, message: text, user: user)
+      new(id: message_id, ts: created_at, message: text.downcase, user: user)
     end
   end
 end
