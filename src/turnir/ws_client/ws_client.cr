@@ -84,16 +84,20 @@ module Turnir::WSClient
     end
 
     message_data = parsed.push.pub.data.data.data
+    mentions = Array(Turnir::Parsing::VkMessage::ContentDataMention).new
 
     text = String.build do |io|
       message_data.each do |data|
-        if data.is_a?(Turnir::Parsing::VkMessage::ContentData) && data.type == "text" && !data.content.empty?
+        if data.is_a?(Turnir::Parsing::VkMessage::ContentDataText) && data.type == "text" && !data.content.empty?
           begin
             io << Array(JSON::Any).from_json(data.content)[0].to_s
           rescue ex
             log "Failed to parse content data: #{ex.inspect}"
             log "Content: #{data.inspect}"
           end
+        end
+        if data.is_a?(Turnir::Parsing::VkMessage::ContentDataMention) && data.type == "mention"
+          mentions << data
         end
       end
     end
@@ -112,6 +116,7 @@ module Turnir::WSClient
     return Turnir::ChatStorage::Types::ChatMessage.from_vk_message(
       message: parsed,
       text: text,
+      mentions: mentions,
     )
   end
 

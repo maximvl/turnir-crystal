@@ -7,13 +7,15 @@ module Turnir::ChatStorage::Types
     property isChannelModerator : Bool
     property roles : Array(Turnir::Parsing::VkMessage::Role)
     property badges : Array(Turnir::Parsing::VkMessage::Badge)
+    property mentions : Array(Turnir::Parsing::VkMessage::ContentDataMention)
 
-    def initialize(nickColor : Int32, isChatModerator : Bool, isChannelModerator : Bool, roles : Array(Turnir::Parsing::VkMessage::Role), badges : Array(Turnir::Parsing::VkMessage::Badge))
+    def initialize(nickColor : Int32, isChatModerator : Bool, isChannelModerator : Bool, roles : Array(Turnir::Parsing::VkMessage::Role), badges : Array(Turnir::Parsing::VkMessage::Badge), mentions : Array(Turnir::Parsing::VkMessage::ContentDataMention))
       @nickColor = nickColor
       @isChatModerator = isChatModerator
       @isChannelModerator = isChannelModerator
       @roles = roles
       @badges = badges
+      @mentions = mentions
     end
   end
 

@@ -17,7 +17,7 @@ module Turnir::ChatStorage::Types
         @user = user
     end
 
-    def self.from_vk_message(message : Turnir::Parsing::VkMessage::ChatMessage, text : String)
+    def self.from_vk_message(message : Turnir::Parsing::VkMessage::ChatMessage, text : String, mentions : Array(Turnir::Parsing::VkMessage::ContentDataMention))
       data = message.push.pub.data.data
       created_at = data.createdAt
       message_id = data.id
@@ -32,6 +32,7 @@ module Turnir::ChatStorage::Types
         isChannelModerator: author.isChannelModerator,
         roles: author.roles,
         badges: author.badges,
+        mentions: mentions,
       )
 
       user = ChatUser.new(id: user_id, username: username, vk_fields: customFields)

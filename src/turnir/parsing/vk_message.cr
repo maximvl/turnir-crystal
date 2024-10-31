@@ -27,7 +27,24 @@ module Turnir::Parsing::VkMessage
     property id : Int32
     property createdAt : Int32
     property author : Author
-    property data : Array(ContentData | IgnoredData)
+    property data : Array(ContentDataMention | ContentDataText | IgnoredData)
+  end
+
+  struct ContentDataText
+    include JSON::Serializable
+    property type : String
+    property content : String
+  end
+
+  struct ContentDataMention
+    include JSON::Serializable
+    property type : String
+    property id : Int32
+    property displayName : String
+  end
+
+  struct IgnoredData
+    include JSON::Serializable
   end
 
   struct Author
@@ -39,16 +56,6 @@ module Turnir::Parsing::VkMessage
     property isChannelModerator : Bool
     property roles : Array(Role)
     property badges : Array(Badge)
-  end
-
-  struct ContentData
-    include JSON::Serializable
-    property type : String
-    property content : String
-  end
-
-  struct IgnoredData
-    include JSON::Serializable
   end
 
   struct Role
