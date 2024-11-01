@@ -22,7 +22,7 @@ module Turnir::ChatStorage::Types
 
     property id : Int32
     property username : String
-    vk_fields : VkUserFields?
+    property vk_fields : VkUserFields?
 
     def initialize(id : Int32, username : String, vk_fields : VkUserFields? = nil)
       @id = id

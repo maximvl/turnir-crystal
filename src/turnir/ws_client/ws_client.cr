@@ -121,7 +121,7 @@ module Turnir::WSClient
   end
 
   def handle_message(message : Turnir::ChatStorage::Types::ChatMessage)
-    log "VK Message: #{message.inspect}"
+    # log "VK Message: #{message.inspect}"
     Turnir::ChatStorage.add_message(message)
   end
 
