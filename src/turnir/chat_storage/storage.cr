@@ -27,7 +27,7 @@ module Turnir::ChatStorage
   end
 
   def should_stop_websocket?
-     @@last_access + 15.minutes < Time.utc
+     @@last_access + 30.minutes < Time.utc
   end
 
 end
