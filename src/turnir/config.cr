@@ -4,6 +4,8 @@ module Turnir::Config
   ROADHOUSE_CHAT = "channel-chat:6367818"
   LASQA_CHAT = "channel-chat:8845069"
 
+  BUILD_TIME = {{ "#{`date`.strip}" }}
+
   def webserver_ip
     ENV.fetch("IP", "127.0.0.1")
   end

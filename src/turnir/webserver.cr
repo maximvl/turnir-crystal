@@ -12,6 +12,7 @@ module Turnir::Webserver
     /^\/v2\/turnir-api\/votes\/reset$/ => ->reset_votes(HTTP::Server::Context),
     /^\/v2\/turnir-api\/presets$/ => ->save_preset(HTTP::Server::Context),
     /^\/v2\/turnir-api\/presets\/(.+)$/ => ->get_or_update_preset(HTTP::Server::Context),
+    /^\/v2\/turnir-api\/version$/ => ->get_version(HTTP::Server::Context),
   }
 
   class MethodNotSupported < Exception
@@ -59,6 +60,14 @@ module Turnir::Webserver
     context.response.content_type = "application/json"
     items = Turnir::ChatStorage.get_messages(ts_filter, text_filter.downcase)
     context.response.print ({"chat_messages" => items}).to_json
+  end
+
+  def get_version(context : HTTP::Server::Context)
+    if context.request.method != "GET"
+      raise MethodNotSupported.new("Method #{context.request.method} not supported")
+    end
+    context.response.content_type = "application/json"
+    context.response.print ({"version" => "1.0", "build_time" => Turnir::Config::BUILD_TIME }).to_json
   end
 
   def reset_votes(context : HTTP::Server::Context)
