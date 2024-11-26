@@ -9,8 +9,8 @@ require "../config"
 module Turnir::WSClient
   extend self
 
-  WS_URL = "wss://pubsub.live.vkplay.ru/connection/websocket?cf_protocol_version=v2"
-  Headers = HTTP::Headers{"Origin" => "https://live.vkplay.ru"}
+  WS_URL = "wss://pubsub.live.vkvideo.ru/connection/websocket?cf_protocol_version=v2"
+  Headers = HTTP::Headers{"Origin" => "https://live.vkvideo.ru"}
 
   @@websocket : HTTP::WebSocket | Nil = nil
   WebsocketMutex = Mutex.new
@@ -157,7 +157,7 @@ module Turnir::WSClient
   end
 
   def get_vk_app_config
-    response = HTTP::Client.get "https://live.vkplay.ru"
+    response = HTTP::Client.get "https://live.vkvideo.ru/"
     parsed = XML.parse_html(response.body)
     node = parsed.document.xpath_node("/html/body/script[@id='app-config']")
     node.try { |node| VkAppConfig.from_json node.content }
