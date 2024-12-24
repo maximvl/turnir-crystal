@@ -127,7 +127,7 @@ module Turnir::WSClient::VkClient
   end
 
   def handle_message(message : Turnir::ChatStorage::Types::ChatMessage)
-    log "VK Message: #{message.inspect}"
+    # log "VK Message: #{message.inspect}"
     Turnir::ChatStorage.add_message(message)
   end
 
@@ -153,11 +153,6 @@ module Turnir::WSClient::VkClient
   end
 
   def send_subscribe(channel : String)
-    if @@websocket.nil?
-      log "Subscribe: websocket is nil"
-      return
-    end
-
     log("Subscribing to #{channel}")
 
     @@message_counter += 1

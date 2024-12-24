@@ -23,8 +23,8 @@ module Turnir::ChatStorage
   def get_messages(channel : String, since : Int32, text_filter : String)
     @@last_access = Time.utc
     channel_id = get_vk_channel_id(channel)
-    puts "Fetching messages for channel #{channel} ID: #{channel_id}"
-    puts "Messages: #{Storage.size}"
+    # puts "Fetching messages for channel #{channel} ID: #{channel_id}"
+    # puts "Messages: #{Storage.size}"
     StorageMutex.synchronize do
       Storage.select { |msg| msg.channel == channel_id && msg.ts >= since && msg.message.downcase().includes?(text_filter)  }
     end
