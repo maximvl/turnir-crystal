@@ -7,17 +7,20 @@ module Turnir
 
   @@vk_websocket_fiber : Fiber | Nil = nil
   @@websocket_ready = Channel(Nil).new(0)
+  @@websocket_mutex = Mutex.new
 
   def start_webserver
     Webserver.start
   end
 
   def ensure_websocket_running
-    if @@vk_websocket_fiber.nil? || @@vk_websocket_fiber.try &.dead?
-      @@vk_websocket_fiber = spawn do
-        WSClient::VkClient.start(@@websocket_ready)
+    @@websocket_mutex.synchronize do
+      if @@vk_websocket_fiber.nil? || @@vk_websocket_fiber.try &.dead?
+        @@vk_websocket_fiber = spawn do
+          WSClient::VkClient.start(@@websocket_ready)
+        end
+        @@websocket_ready.receive()
       end
-      @@websocket_ready.receive()
     end
   end
 

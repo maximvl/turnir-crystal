@@ -96,7 +96,7 @@ module Turnir::Webserver
     context.response.content_type = "application/json"
 
     get_session_id(context)
-    Turnir.ensure_websocket_running
+    Turnir.ensure_websocket_running()
 
     query_params = context.request.query_params
     channel_name = query_params.fetch("channel", nil)
