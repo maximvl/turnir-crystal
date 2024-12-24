@@ -1,6 +1,5 @@
 require "http/server"
 require "json"
-require "./ws_client"
 require "./chat_storage/storage"
 require "./config"
 
@@ -8,8 +7,9 @@ module Turnir::Webserver
   extend self
 
   URL_MAP = {
-    /^\/v2\/turnir-api\/votes$/ => ->get_votes(HTTP::Server::Context),
-    /^\/v2\/turnir-api\/votes\/reset$/ => ->reset_votes(HTTP::Server::Context),
+    /^\/v2\/turnir-api\/chat_messages$/ => ->get_chat_messages(HTTP::Server::Context),
+    /^\/v2\/turnir-api\/chat_messages\/clear$/ => ->clear_messages(HTTP::Server::Context),
+    /^\/v2\/turnir-api\/chat_connect$/ => ->connect_to_chat(HTTP::Server::Context),
     /^\/v2\/turnir-api\/presets$/ => ->save_preset(HTTP::Server::Context),
     /^\/v2\/turnir-api\/presets\/(.+)$/ => ->get_or_update_preset(HTTP::Server::Context),
     /^\/v2\/turnir-api\/version$/ => ->get_version(HTTP::Server::Context),
@@ -48,17 +48,26 @@ module Turnir::Webserver
     session_id
   end
 
-  def get_votes(context : HTTP::Server::Context)
+  def get_chat_messages(context : HTTP::Server::Context)
     if context.request.method != "GET"
       raise MethodNotSupported.new("Method #{context.request.method} not supported")
     end
     get_session_id(context)
+    context.response.content_type = "application/json"
+
     query_params = context.request.query_params
+    channel = query_params.fetch("channel", nil)
+    if channel.nil?
+      context.response.status = HTTP::Status::BAD_REQUEST
+      context.response.print ({"error" => "channel is required"}).to_json
+      return
+    end
+
     ts_filter = query_params.fetch("ts", "0").to_i
     text_filter = query_params.fetch("text_filter", "")
     Turnir.ensure_websocket_running
-    context.response.content_type = "application/json"
-    items = Turnir::ChatStorage.get_messages(ts_filter, text_filter.downcase)
+
+    items = Turnir::ChatStorage.get_messages(channel, ts_filter, text_filter.downcase)
     context.response.print ({"chat_messages" => items}).to_json
   end
 
@@ -70,12 +79,46 @@ module Turnir::Webserver
     context.response.print ({"version" => "1.0", "build_time" => Turnir::Config::BUILD_TIME }).to_json
   end
 
-  def reset_votes(context : HTTP::Server::Context)
+  def clear_messages(context : HTTP::Server::Context)
     if context.request.method != "POST"
       raise MethodNotSupported.new("Method #{context.request.method} not supported")
     end
     Turnir::ChatStorage.clear
     context.response.content_type = "application/json"
+    context.response.print ({"status" => "ok"}).to_json
+  end
+
+  def connect_to_chat(context : HTTP::Server::Context)
+    if context.request.method != "POST"
+      raise MethodNotSupported.new("Method #{context.request.method} not supported")
+    end
+
+    context.response.content_type = "application/json"
+
+    get_session_id(context)
+    Turnir.ensure_websocket_running
+
+    query_params = context.request.query_params
+    channel_name = query_params.fetch("channel", nil)
+    if channel_name.nil?
+      context.response.status = HTTP::Status::BAD_REQUEST
+      context.response.print ({"error" => "channel_name is required"}).to_json
+      return
+    end
+
+    platform = query_params.fetch("platform", nil)
+
+    supported_platforms = ["vkvideo"]
+    if supported_platforms.includes?(platform) == false
+      context.response.status = HTTP::Status::BAD_REQUEST
+      context.response.print ({"error" => "platform is not supported"}).to_json
+      return
+    end
+
+    if platform == "vkvideo"
+      Turnir::WSClient::VkClient.subscribe_to_channel(channel_name)
+    end
+
     context.response.print ({"status" => "ok"}).to_json
   end
 

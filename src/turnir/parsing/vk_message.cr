@@ -8,6 +8,7 @@ module Turnir::Parsing::VkMessage
 
   struct Push
     include JSON::Serializable
+    property channel : String
     property pub : Pub
   end
 

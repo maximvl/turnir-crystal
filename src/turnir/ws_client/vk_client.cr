@@ -6,22 +6,26 @@ require "../parsing/vk_message"
 require "../chat_storage/storage"
 require "../config"
 
-module Turnir::WSClient
+module Turnir::WSClient::VkClient
   extend self
 
   WS_URL = "wss://pubsub.live.vkvideo.ru/connection/websocket?cf_protocol_version=v2"
   Headers = HTTP::Headers{"Origin" => "https://live.vkvideo.ru"}
 
+  CHANNEL_INFO_URL = "https://api.live.vkvideo.ru/v1/blog/{{name}}/public_video_stream/chat/user/"
+
   @@websocket : HTTP::WebSocket | Nil = nil
   WebsocketMutex = Mutex.new
+
+  @@message_counter = 0
 
   def log(msg)
     print "[WSClient] "
     puts msg
   end
 
-  def start
-    app_config = get_vk_app_config
+  def start(sync_channel : Channel(Nil))
+    app_config = get_vk_app_config()
     if app_config.nil?
       log "Failed to get vk token"
       return
@@ -62,8 +66,10 @@ module Turnir::WSClient
     end
 
     log "Starting websocket"
-    send_initial_messages(app_config.websocket.token)
-    websocket.run
+    send_login(app_config.websocket.token)
+
+    sync_channel.send(nil)
+    websocket.run()
     @@websocket = nil
   end
 
@@ -121,23 +127,43 @@ module Turnir::WSClient
   end
 
   def handle_message(message : Turnir::ChatStorage::Types::ChatMessage)
-    # log "VK Message: #{message.inspect}"
+    log "VK Message: #{message.inspect}"
     Turnir::ChatStorage.add_message(message)
   end
 
-  def send_initial_messages(vk_token : String)
+  def send_login(vk_token : String)
+    @@message_counter += 1
     login_message = {
       "connect" => {"token" => vk_token, "name" => "js"},
-      "id" => 1,
+      "id" => @@message_counter,
     }
     @@websocket.try { |ws| ws.send(login_message.to_json) }
+  end
 
-    chat_id = Turnir::Config.vk_chat_id
-    log("Chat id: #{chat_id}")
+  def subscribe_to_channel(channel_name : String)
+    channel_id = get_vk_channel_id(channel_name)
+    if channel_id.nil?
+      log "Failed to get channel id for #{channel_name}"
+      return
+    end
 
+    channel = "channel-chat:#{channel_id}"
+    Turnir::ChatStorage.set_vk_channel_id(channel_name, channel)
+    send_subscribe(channel)
+  end
+
+  def send_subscribe(channel : String)
+    if @@websocket.nil?
+      log "Subscribe: websocket is nil"
+      return
+    end
+
+    log("Subscribing to #{channel}")
+
+    @@message_counter += 1
     subscribe_message = {
-      "subscribe" => {"channel" => chat_id},
-      "id" => 2,
+      "subscribe" => {"channel" => channel},
+      "id" => @@message_counter,
     }
     @@websocket.try { |ws| ws.send(subscribe_message.to_json) }
   end
@@ -161,5 +187,35 @@ module Turnir::WSClient
     parsed = XML.parse_html(response.body)
     node = parsed.document.xpath_node("/html/body/script[@id='app-config']")
     node.try { |node| VkAppConfig.from_json node.content }
+  end
+
+  struct VkChannelInfo
+    include JSON::Serializable
+    property data : VkChannelInfoData
+  end
+
+  struct VkChannelInfoData
+    include JSON::Serializable
+    property owner : VkChannelInfoOwner
+  end
+
+  struct VkChannelInfoOwner
+    include JSON::Serializable
+    property id : Int32
+    property name : String
+    property nick : String
+  end
+
+  def get_vk_channel_id(name : String) : Int32 | Nil
+    url = CHANNEL_INFO_URL.gsub("{{name}}", name)
+    response = HTTP::Client.get url
+    begin
+      parsed = VkChannelInfo.from_json(response.body)
+      return parsed.data.owner.id
+    rescue ex
+      log "Failed to get channel for #{name} exception: #{ex.inspect}"
+      log "Response: #{response.body.inspect}"
+      return nil
+    end
   end
 end
