@@ -14,6 +14,6 @@ module Turnir::Config
     ENV.fetch("PORT", "8080").to_i
   end
 
-  TWITCH_OAUTH_TOKEN = ENV.fetch("TWITCH_OAUTH")
+  TWITCH_OAUTH_TOKEN = ENV.fetch("TWITCH_OAUTH", "NO_TOKEN")
   TWITCH_NICK = ENV.fetch("TWITCH_NICK", "turnir_bot")
 end
