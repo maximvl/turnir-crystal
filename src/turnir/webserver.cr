@@ -72,10 +72,10 @@ module Turnir::Webserver
 
     ts_filter = query_params.fetch("ts", "0").to_i
     text_filter = query_params.fetch("text_filter", "")
-    Turnir.ensure_websocket_running
 
     items = [] of Turnir::ChatStorage::Types::ChatMessage
     if platform == "vkvideo"
+      Turnir.ensure_vk_websocket_running()
       channel_id = Turnir::ChatStorage.get_vk_channel_id(channel)
       if channel_id.nil?
         context.response.status = HTTP::Status::BAD_REQUEST
@@ -87,6 +87,7 @@ module Turnir::Webserver
     end
 
     if platform == "twitch"
+      Turnir.ensure_twitch_websocket_running()
       items = Turnir::ChatStorage::TWITCH_STORAGE.get_messages(channel, ts_filter, text_filter.downcase)
     end
 
@@ -119,7 +120,6 @@ module Turnir::Webserver
     context.response.content_type = "application/json"
 
     get_session_id(context)
-    Turnir.ensure_websocket_running()
 
     query_params = context.request.query_params
     channel_name = query_params.fetch("channel", nil)
@@ -131,7 +131,7 @@ module Turnir::Webserver
 
     platform = query_params.fetch("platform", nil)
 
-    supported_platforms = ["vkvideo"]
+    supported_platforms = ["vkvideo", "twitch"]
     if supported_platforms.includes?(platform) == false
       context.response.status = HTTP::Status::BAD_REQUEST
       context.response.print ({"error" => "platform is not supported"}).to_json
@@ -139,7 +139,13 @@ module Turnir::Webserver
     end
 
     if platform == "vkvideo"
+      Turnir.ensure_vk_websocket_running()
       Turnir::WSClient::VkClient.subscribe_to_channel(channel_name)
+    end
+
+    if platform == "twitch"
+      Turnir.ensure_twitch_websocket_running()
+      Turnir::WSClient::TwitchClient.subscribe_to_channel(channel_name)
     end
 
     context.response.print ({"status" => "ok"}).to_json

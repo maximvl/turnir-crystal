@@ -14,7 +14,6 @@ module Turnir::Config
     ENV.fetch("PORT", "8080").to_i
   end
 
-  def vk_chat_id
-    ENV.fetch("VK_CHAT_ID", LASQA_CHAT)
-  end
+  TWITCH_OAUTH_TOKEN = ENV.fetch("TWITCH_OAUTH")
+  TWITCH_NICK = ENV.fetch("TWITCH_NICK", "turnir_bot")
 end

@@ -20,11 +20,11 @@ module Turnir::ChatStorage::Types
   struct ChatUser
     include JSON::Serializable
 
-    property id : Int32
+    property id : String
     property username : String
     property vk_fields : VkUserFields?
 
-    def initialize(id : Int32, username : String, vk_fields : VkUserFields? = nil)
+    def initialize(id : String, username : String, vk_fields : VkUserFields? = nil)
       @id = id
       @username = username
       @vk_fields = vk_fields

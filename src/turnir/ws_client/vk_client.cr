@@ -4,7 +4,6 @@ require "http/client"
 
 require "../parsing/vk_message"
 require "../chat_storage/storage"
-require "../config"
 
 module Turnir::WSClient::VkClient
   extend self
@@ -20,7 +19,7 @@ module Turnir::WSClient::VkClient
   @@message_counter = 0
 
   def log(msg)
-    print "[WSClient] "
+    print "[VkvideoWS] "
     puts msg
   end
 
