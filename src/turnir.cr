@@ -26,11 +26,11 @@ module Turnir
 
   def websocket_watcher
     loop do
-      if Turnir::ChatStorage.should_stop_websocket? && @@vk_websocket_fiber
+      if Turnir::ChatStorage::VK_STORAGE.should_stop_websocket? && @@vk_websocket_fiber
         puts "Stopping websocket"
         WSClient::VkClient.stop()
         @@vk_websocket_fiber = nil
-        Turnir::ChatStorage.clear
+        Turnir::ChatStorage::VK_STORAGE.clear()
       end
       sleep 60.seconds
     end

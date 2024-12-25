@@ -128,7 +128,7 @@ module Turnir::WSClient::VkClient
 
   def handle_message(message : Turnir::ChatStorage::Types::ChatMessage)
     # log "VK Message: #{message.inspect}"
-    Turnir::ChatStorage.add_message(message)
+    Turnir::ChatStorage::VK_STORAGE.add_message(message)
   end
 
   def send_login(vk_token : String)

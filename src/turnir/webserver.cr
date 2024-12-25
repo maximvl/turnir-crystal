@@ -63,11 +63,33 @@ module Turnir::Webserver
       return
     end
 
+    platform = query_params.fetch("platform", nil)
+    if platform.nil?
+      context.response.status = HTTP::Status::BAD_REQUEST
+      context.response.print ({"error" => "platform is required"}).to_json
+      return
+    end
+
     ts_filter = query_params.fetch("ts", "0").to_i
     text_filter = query_params.fetch("text_filter", "")
     Turnir.ensure_websocket_running
 
-    items = Turnir::ChatStorage.get_messages(channel, ts_filter, text_filter.downcase)
+    items = [] of Turnir::ChatStorage::Types::ChatMessage
+    if platform == "vkvideo"
+      channel_id = Turnir::ChatStorage.get_vk_channel_id(channel)
+      if channel_id.nil?
+        context.response.status = HTTP::Status::BAD_REQUEST
+        context.response.print ({"error" => "channel not found"}).to_json
+        return
+      end
+
+      items = Turnir::ChatStorage::VK_STORAGE.get_messages(channel_id, ts_filter, text_filter.downcase)
+    end
+
+    if platform == "twitch"
+      items = Turnir::ChatStorage::TWITCH_STORAGE.get_messages(channel, ts_filter, text_filter.downcase)
+    end
+
     context.response.print ({"chat_messages" => items}).to_json
   end
 
@@ -83,7 +105,8 @@ module Turnir::Webserver
     if context.request.method != "POST"
       raise MethodNotSupported.new("Method #{context.request.method} not supported")
     end
-    Turnir::ChatStorage.clear
+    Turnir::ChatStorage::VK_STORAGE.clear()
+    Turnir::ChatStorage::TWITCH_STORAGE.clear()
     context.response.content_type = "application/json"
     context.response.print ({"status" => "ok"}).to_json
   end
