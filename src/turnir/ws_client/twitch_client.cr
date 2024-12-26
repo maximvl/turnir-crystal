@@ -76,7 +76,8 @@ module Turnir::WSClient::TwitchClient
 
     channel = parts[2][1..-1]
     message = parts[3..-1].join(" ").strip()
-    if message[0] == ":"
+
+    if message.size > 0 && message[0] == ':'
       message = message[1..-1]
     end
 
