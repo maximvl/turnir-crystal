@@ -1,6 +1,6 @@
 require "http/server"
 require "json"
-require "./chat_storage/storage"
+require "./client/client"
 require "./config"
 
 module Turnir::Webserver
@@ -75,20 +75,20 @@ module Turnir::Webserver
 
     items = [] of Turnir::ChatStorage::Types::ChatMessage
     if platform == "vkvideo"
-      Turnir.ensure_vk_websocket_running()
-      channel_id = Turnir::ChatStorage.get_vk_channel_id(channel)
+      Turnir::Client.ensure_client_running(Turnir::Client::ClientType::VK)
+      channel_id = Turnir::Client::ChannelMapper.get_vk_channel(channel)
       if channel_id.nil?
         context.response.status = HTTP::Status::BAD_REQUEST
         context.response.print ({"error" => "channel not found"}).to_json
         return
       end
 
-      items = Turnir::ChatStorage::VK_STORAGE.get_messages(channel_id, ts_filter, text_filter.downcase)
+      items = Turnir::Client.get_messages(Turnir::Client::ClientType::VK, channel_id, ts_filter, text_filter.downcase)
     end
 
     if platform == "twitch"
-      Turnir.ensure_twitch_websocket_running()
-      items = Turnir::ChatStorage::TWITCH_STORAGE.get_messages(channel, ts_filter, text_filter.downcase)
+      Turnir::Client.ensure_client_running(Turnir::Client::ClientType::TWITCH)
+      items = Turnir::Client.get_messages(Turnir::Client::ClientType::TWITCH, channel, ts_filter, text_filter.downcase)
     end
 
     context.response.print ({"chat_messages" => items}).to_json
@@ -106,8 +106,10 @@ module Turnir::Webserver
     if context.request.method != "POST"
       raise MethodNotSupported.new("Method #{context.request.method} not supported")
     end
-    Turnir::ChatStorage::VK_STORAGE.clear()
-    Turnir::ChatStorage::TWITCH_STORAGE.clear()
+
+    Turnir::Client.clear_messages(Turnir::Client::ClientType::VK)
+    Turnir::Client.clear_messages(Turnir::Client::ClientType::TWITCH)
+
     context.response.content_type = "application/json"
     context.response.print ({"status" => "ok"}).to_json
   end
@@ -139,13 +141,13 @@ module Turnir::Webserver
     end
 
     if platform == "vkvideo"
-      Turnir.ensure_vk_websocket_running()
-      Turnir::WSClient::VkClient.subscribe_to_channel(channel_name)
+      Turnir::Client.ensure_client_running(Turnir::Client::ClientType::VK)
+      Turnir::Client.subscribe_to_channel(Turnir::Client::ClientType::VK, channel_name)
     end
 
     if platform == "twitch"
-      Turnir.ensure_twitch_websocket_running()
-      Turnir::WSClient::TwitchClient.subscribe_to_channel(channel_name)
+      Turnir::Client.ensure_client_running(Turnir::Client::ClientType::TWITCH)
+      Turnir::Client.subscribe_to_channel(Turnir::Client::ClientType::TWITCH, channel_name)
     end
 
     context.response.print ({"status" => "ok"}).to_json
@@ -255,9 +257,9 @@ module Turnir::Webserver
   def start
     server = HTTP::Server.new do |context|
 
-      # context.response.headers["Access-Control-Allow-Origin"] = "http://localhost:5173"
-      # context.response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-      # context.response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+      context.response.headers["Access-Control-Allow-Origin"] = "http://localhost:5173"
+      context.response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+      context.response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
 
       start = Time.utc
       path = context.request.path

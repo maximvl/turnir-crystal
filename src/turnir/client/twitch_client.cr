@@ -1,4 +1,10 @@
-module Turnir::WSClient::TwitchClient
+require "http/client"
+require "time"
+require "../chat_storage/types"
+require "../chat_storage/storage"
+require "../config"
+
+module Turnir::Client::TwitchWebsocket
   extend self
 
   @@websocket : HTTP::WebSocket | Nil = nil
@@ -11,7 +17,7 @@ module Turnir::WSClient::TwitchClient
     puts msg
   end
 
-  def start(sync_channel : Channel(Nil))
+  def start(sync_channel : Channel(Nil), storage : Turnir::ChatStorage::Storage)
     WebsocketMutex.synchronize do
       if @@websocket.nil?
         @@websocket = HTTP::WebSocket.new(
@@ -38,7 +44,7 @@ module Turnir::WSClient::TwitchClient
       parsed = parse_message(msg)
       # log "Parsed message: #{parsed.inspect}"
       if parsed
-        Turnir::ChatStorage::TWITCH_STORAGE.add_message(parsed)
+        storage.add_message(parsed)
       end
     end
 

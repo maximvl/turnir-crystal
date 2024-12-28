@@ -3,9 +3,9 @@ require "xml"
 require "http/client"
 
 require "../parsing/vk_message"
-require "../chat_storage/storage"
+require "./channel_mapper"
 
-module Turnir::WSClient::VkClient
+module Turnir::Client::VkWebsocket
   extend self
 
   WS_URL = "wss://pubsub.live.vkvideo.ru/connection/websocket?cf_protocol_version=v2"
@@ -23,7 +23,7 @@ module Turnir::WSClient::VkClient
     puts msg
   end
 
-  def start(sync_channel : Channel(Nil))
+  def start(sync_channel : Channel(Nil), storage : Turnir::ChatStorage::Storage)
     app_config = get_vk_app_config()
     if app_config.nil?
       log "Failed to get vk token"
@@ -55,7 +55,7 @@ module Turnir::WSClient::VkClient
       end
       parsed = parse_message(msg)
       if parsed
-        handle_message(parsed)
+        storage.add_message(parsed)
       end
     end
 
@@ -125,11 +125,6 @@ module Turnir::WSClient::VkClient
     )
   end
 
-  def handle_message(message : Turnir::ChatStorage::Types::ChatMessage)
-    # log "VK Message: #{message.inspect}"
-    Turnir::ChatStorage::VK_STORAGE.add_message(message)
-  end
-
   def send_login(vk_token : String)
     @@message_counter += 1
     login_message = {
@@ -147,7 +142,7 @@ module Turnir::WSClient::VkClient
     end
 
     channel = "channel-chat:#{channel_id}"
-    Turnir::ChatStorage.set_vk_channel_id(channel_name, channel)
+    Turnir::Client::ChannelMapper.set_vk_channel(channel_name, channel)
     send_subscribe(channel)
   end
 

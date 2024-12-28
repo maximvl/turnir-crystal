@@ -4,19 +4,10 @@ module Turnir::ChatStorage
 
   extend self
 
-  VK_STORAGE = Storage.new
-  TWITCH_STORAGE = Storage.new
-
-  VKChannelsMap = {} of String => String
-
   class Storage
     property storage : Array(Turnir::ChatStorage::Types::ChatMessage)
     property storage_mutex : Mutex
     property last_access : Time
-
-    # Storage = Array(Turnir::ChatStorage::Types::ChatMessage).new
-    # StorageMutex = Mutex.new
-    # @@last_access = Time.utc
 
     MESSAGES_LIMIT = 2000
 
@@ -50,16 +41,8 @@ module Turnir::ChatStorage
       end
     end
 
-    def should_stop_websocket?
+    def should_stop?
       @last_access + 30.minutes < Time.utc
     end
-  end
-
-  def get_vk_channel_id(channel_name : String) : String | Nil
-    VKChannelsMap[channel_name]?
-  end
-
-  def set_vk_channel_id(channel_name : String, channel_id : String)
-    VKChannelsMap[channel_name] = channel_id
   end
 end
