@@ -43,21 +43,18 @@ module Turnir::ChatStorage::Types
       new(id: message_id, ts: created_at, message: text, user: user, vkFields: vkFields, channel: message.push.channel)
     end
 
-    def self.from_nuum_message(message : Turnir::Parsing::NuumMessage::ChatMessage)
-      data = message.push.pub.data
+    def self.from_nuum_message(message : Turnir::Parsing::NuumMessage::Event, channel : String)
 
       # convert date "2024-12-26T23:14:59.859Z" to int
-      created_at = Time.parse(data.createdAt, "%Y-%m-%dT%H:%M:%S.%LZ", Time::Location::UTC).to_unix
-      message_id = data.id
+      created_at = Time.parse(message.timestamp, "%Y-%m-%dT%H:%M:%S.%LZ", Time::Location::UTC).to_unix
 
-      author = data.author
-      username = author.login
-      user_id = author.userId
+      username = message.author.login
+      user_id = message.author.id
 
-      text = data.data.text.strip()
+      text = message.eventData.text.strip()
 
       user = ChatUser.new(id: user_id.to_s(), username: username)
-      new(id: message_id, ts: created_at, message: text, user: user, channel: message.push.channel)
+      new(id: message.id, ts: created_at, message: text, user: user, channel: channel)
     end
   end
 end

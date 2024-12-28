@@ -11,7 +11,7 @@ module Turnir::Client
     NUUM
   end
 
-  alias ClientModule = Turnir::Client::VkWebsocket | Turnir::Client::TwitchWebsocket | Turnir::Client::NuumWebsocket
+  alias ClientModule = Turnir::Client::VkWebsocket | Turnir::Client::TwitchWebsocket | Turnir::Client::NuumPolling
 
   class Client
     property client_type : ClientType
@@ -30,7 +30,7 @@ module Turnir::Client
   CLIENTS = {
     ClientType::VK => Client.new(ClientType::VK, Turnir::Client::VkWebsocket),
     ClientType::TWITCH => Client.new(ClientType::TWITCH, Turnir::Client::TwitchWebsocket),
-    ClientType::NUUM => Client.new(ClientType::NUUM, Turnir::Client::NuumWebsocket),
+    ClientType::NUUM => Client.new(ClientType::NUUM, Turnir::Client::NuumPolling),
   }
 
 

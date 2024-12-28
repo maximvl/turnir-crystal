@@ -91,6 +91,18 @@ module Turnir::Webserver
       items = Turnir::Client.get_messages(Turnir::Client::ClientType::TWITCH, channel, ts_filter, text_filter.downcase)
     end
 
+    if platform == "nuum"
+      channel_id = Turnir::Client::ChannelMapper.get_nuum_channel(channel)
+      if channel_id.nil?
+        context.response.status = HTTP::Status::BAD_REQUEST
+        context.response.print ({"error" => "channel not found"}).to_json
+        return
+      end
+
+      Turnir::Client.ensure_client_running(Turnir::Client::ClientType::NUUM)
+      items = Turnir::Client.get_messages(Turnir::Client::ClientType::NUUM, channel_id, ts_filter, text_filter.downcase)
+    end
+
     context.response.print ({"chat_messages" => items}).to_json
   end
 
@@ -133,7 +145,7 @@ module Turnir::Webserver
 
     platform = query_params.fetch("platform", nil)
 
-    supported_platforms = ["vkvideo", "twitch"]
+    supported_platforms = ["vkvideo", "twitch", "nuum"]
     if supported_platforms.includes?(platform) == false
       context.response.status = HTTP::Status::BAD_REQUEST
       context.response.print ({"error" => "platform is not supported"}).to_json
@@ -148,6 +160,11 @@ module Turnir::Webserver
     if platform == "twitch"
       Turnir::Client.ensure_client_running(Turnir::Client::ClientType::TWITCH)
       Turnir::Client.subscribe_to_channel(Turnir::Client::ClientType::TWITCH, channel_name)
+    end
+
+    if platform == "nuum"
+      Turnir::Client.ensure_client_running(Turnir::Client::ClientType::NUUM)
+      Turnir::Client.subscribe_to_channel(Turnir::Client::ClientType::NUUM, channel_name)
     end
 
     context.response.print ({"status" => "ok"}).to_json

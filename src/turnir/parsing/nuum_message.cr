@@ -1,30 +1,19 @@
 module Turnir::Parsing::NuumMessage
-  struct ChatMessage
+  struct EventsResponse
     include JSON::Serializable
-    property push : Push
+    property result : Array(Event)
   end
 
-  struct Push
-    include JSON::Serializable
-    property channel : String
-    property pub : Pub
-  end
-
-  struct Pub
-    include JSON::Serializable
-    property data : PubData
-  end
-
-  struct PubData
+  struct Event
     include JSON::Serializable
     property id : Int32
-    property type : String
-    property createdAt : String
-    property data : PubDataData
+    property eventType : String
+    property timestamp : String
+    property eventData : EventData
     property author : Author
   end
 
-  struct PubDataData
+  struct EventData
     include JSON::Serializable
     property type : String
     property text : String
@@ -32,7 +21,7 @@ module Turnir::Parsing::NuumMessage
 
   struct Author
     include JSON::Serializable
-    property userId : Int32
+    property id : Int32
     property login : String
     property isSubscriber : Bool
   end
@@ -44,9 +33,15 @@ module Turnir::Parsing::NuumMessage
 
   struct ChannelInfo
     include JSON::Serializable
-    property channel_id : Int32
-    property channel_is_live : Bool
+    property channel : Channel
     property media_container : MediaContainer
+  end
+
+  struct Channel
+    include JSON::Serializable
+    property channel_id : Int32
+    property channel_name : String
+    property channel_is_live : Bool
   end
 
   struct MediaContainer

@@ -4,13 +4,8 @@ require "http/client"
 require "../parsing/nuum_message"
 require "./channel_mapper"
 
-module Turnir::Client::NuumWebsocket
+module Turnir::Client::NuumPolling
   extend self
-
-  WS_URL = "wss://socket.nuum.ru/connection/v1/websocket"
-
-  @@websocket : HTTP::WebSocket | Nil = nil
-  WebsocketMutex = Mutex.new
 
   @@message_counter = 0
 
@@ -23,59 +18,34 @@ module Turnir::Client::NuumWebsocket
   PUBLIC_CHANNEL_URL = "https://nuum.ru/api/v2/broadcasts/public?channel_name={{channel}}"
   CHAT_URL = "https://nuum.ru/api/v3/chats?contentType={{type}}&contentId={{id}}"
 
+  EVENTS_URL = "https://nuum.ru/api/v3/events/{{chat_id}}/events"
+
+  @@storage : Turnir::ChatStorage::Storage | Nil = nil
+  @@stop_channel = Channel(Int32).new(0)
+
+  SUBSCRIBED_CHATS = Set(String).new
+
+  LAST_TS_PER_CHAT = {} of String => String
+
   def log(msg : String)
     print "[NuumPolling] "
     puts msg
   end
 
   def start(sync_channel : Channel(Nil), storage : Turnir::ChatStorage::Storage)
-    WebsocketMutex.synchronize do
-      if @@websocket.nil?
-        @@websocket = HTTP::WebSocket.new(
-          WS_URL,
-          headers=HEADERS,
-        )
-      end
-    end
-
-    websocket = @@websocket
-    if websocket.nil?
-      log "Failed to start websocket"
-      return
-    end
-
-    websocket.on_message do |msg|
-      log "WS message: #{msg}"
-      if msg == "{}"
-        websocket.send("{}")
-        next
-      end
-
-      parsed = parse_message(msg)
-      if parsed
-        chat_message = Turnir::ChatStorage::Types::ChatMessage.from_nuum_message(parsed)
-        storage.add_message(chat_message)
-      end
-    end
-
-    websocket.on_close do |code|
-      log "Websocket Closed: #{code}"
-      @@websocket = nil
-    end
-
-    send_connect()
+    @@storage = storage
     sync_channel.send(nil)
-    websocket.run()
-    @@websocket = nil
-  end
+    loop do
+      SUBSCRIBED_CHATS.each do |chat|
+        fetch_events(chat)
+      end
 
-  def send_connect()
-    @@message_counter += 1
-    connect_message = {
-      "connect" => {"name" => "js"},
-      "id" => @@message_counter,
-    }
-    @@websocket.try { |ws| ws.send(connect_message.to_json) }
+      select when @@stop_channel.receive?
+        break
+      else
+        sleep 2.seconds
+      end
+    end
   end
 
   def subscribe_to_channel(channel_name : String)
@@ -84,18 +54,9 @@ module Turnir::Client::NuumWebsocket
       log "Failed to get chat id for #{channel_name}"
       return
     end
-    channel = "chats:#{chat_id}"
+    channel = chat_id.to_s
     Turnir::Client::ChannelMapper.set_nuum_channel(channel_name, channel)
-    send_subscribe(channel)
-  end
-
-  def send_subscribe(channel : String)
-    @@message_counter += 1
-    subscribe_message = {
-      "subscribe" => {"channel" => channel},
-      "id" => @@message_counter,
-    }
-    @@websocket.try { |ws| ws.send(subscribe_message.to_json) }
+    SUBSCRIBED_CHATS << channel
   end
 
   def get_chat_id(channel_name : String) : Int32 | Nil
@@ -125,16 +86,43 @@ module Turnir::Client::NuumWebsocket
     parsed.result.id
   end
 
-  def parse_message(msg : String) : Turnir::Parsing::NuumMessage::ChatMessage | Nil
+  def fetch_events(chat_id : String)
+    events_url = EVENTS_URL.sub("{{chat_id}}", chat_id)
+
+    last_5_mins = Time.utc - 5.minutes
+
+    # Format in this way 2024-12-28T14:56:49.691Z
+    last_5_mins = last_5_mins.to_s("%Y-%m-%dT%H:%M:%S.%LZ")
+
+    body = {
+      "timestampStart" => LAST_TS_PER_CHAT.fetch(chat_id, last_5_mins),
+      "sort" => "ASC",
+      "eventTypes" => ["MESSAGE"],
+    }
+
+    response = HTTP::Client.post(events_url, headers: HEADERS, body: body.to_json)
+
+    # log "Events url: #{events_url}, body #{body.to_json}"
+
     begin
-      Turnir::Parsing::NuumMessage::ChatMessage.from_json(msg)
+      parsed = Turnir::Parsing::NuumMessage::EventsResponse.from_json(response.body)
     rescue ex
-      log "Failed to parse message: #{ex.inspect} #{msg}"
-      return nil
+      log "Failed to get events: #{ex.inspect} #{response.body}"
+      return
+    end
+
+    # log "Fetched events: #{parsed.result}"
+
+    parsed.result.each do |event|
+      chat_message = Turnir::ChatStorage::Types::ChatMessage.from_nuum_message(event, channel: chat_id)
+      @@storage.try { |s| s.add_message(chat_message) }
+      LAST_TS_PER_CHAT[chat_id] = event.timestamp
     end
   end
 
   def stop
-    @@websocket.try { |ws| ws.close }
+    SUBSCRIBED_CHATS.clear()
+    @@stop_channel.send(1)
+    LAST_TS_PER_CHAT.clear()
   end
 end
