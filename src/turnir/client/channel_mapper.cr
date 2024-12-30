@@ -21,4 +21,14 @@ module Turnir::Client::ChannelMapper
     NUUMChannelsMap[channel_name] = channel_id
   end
 
+  GoodgameChannelsMap = {} of String => String
+
+  def get_goodgame_channel(channel_name : String) : String | Nil
+    GoodgameChannelsMap[channel_name]?
+  end
+
+  def set_goodgame_channel(channel_name : String, channel_id : String)
+    GoodgameChannelsMap[channel_name] = channel_id
+  end
+
 end

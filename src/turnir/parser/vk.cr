@@ -1,6 +1,6 @@
 require "json"
 
-module Turnir::Parsing::VkMessage
+module Turnir::Parser::Vk
   struct ChatMessage
     include JSON::Serializable
     property push : Push

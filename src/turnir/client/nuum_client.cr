@@ -1,7 +1,7 @@
 require "json"
 require "http/client"
 
-require "../parsing/nuum_message"
+require "../parser/nuum"
 require "./channel_mapper"
 
 module Turnir::Client::NuumPolling
@@ -64,7 +64,7 @@ module Turnir::Client::NuumPolling
     resporse = HTTP::Client.get(channel_url, headers: HEADERS)
 
     begin
-      parsed = Turnir::Parsing::NuumMessage::ChannelResponse.from_json(resporse.body)
+      parsed = Turnir::Parser::Nuum::ChannelResponse.from_json(resporse.body)
     rescue ex
       log "Failed to get media container: #{ex.inspect} #{resporse.body}"
       return nil
@@ -77,7 +77,7 @@ module Turnir::Client::NuumPolling
     chat_response = HTTP::Client.get(chat_url, headers: HEADERS)
 
     begin
-      parsed = Turnir::Parsing::NuumMessage::ChatResponse.from_json(chat_response.body)
+      parsed = Turnir::Parser::Nuum::ChatResponse.from_json(chat_response.body)
     rescue ex
       log "Failed to get chat id: #{ex.inspect} #{chat_response.body}"
       return nil
@@ -105,7 +105,7 @@ module Turnir::Client::NuumPolling
     # log "Events url: #{events_url}, body #{body.to_json}"
 
     begin
-      parsed = Turnir::Parsing::NuumMessage::EventsResponse.from_json(response.body)
+      parsed = Turnir::Parser::Nuum::EventsResponse.from_json(response.body)
     rescue ex
       log "Failed to get events: #{ex.inspect} #{response.body}"
       return

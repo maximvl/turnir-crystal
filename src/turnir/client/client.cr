@@ -1,6 +1,7 @@
 require "./vk_client"
 require "./twitch_client"
 require "./nuum_client"
+require "./goodgame_client"
 
 module Turnir::Client
   extend self
@@ -9,9 +10,10 @@ module Turnir::Client
     VK
     TWITCH
     NUUM
+    GOODGAME
   end
 
-  alias ClientModule = Turnir::Client::VkWebsocket | Turnir::Client::TwitchWebsocket | Turnir::Client::NuumPolling
+  alias ClientModule = Turnir::Client::VkWebsocket | Turnir::Client::TwitchWebsocket | Turnir::Client::NuumPolling | Turnir::Client::GoodgameWebsocket
 
   class Client
     property client_type : ClientType
@@ -31,6 +33,7 @@ module Turnir::Client
     ClientType::VK => Client.new(ClientType::VK, Turnir::Client::VkWebsocket),
     ClientType::TWITCH => Client.new(ClientType::TWITCH, Turnir::Client::TwitchWebsocket),
     ClientType::NUUM => Client.new(ClientType::NUUM, Turnir::Client::NuumPolling),
+    ClientType::GOODGAME => Client.new(ClientType::GOODGAME, Turnir::Client::GoodgameWebsocket),
   }
 
 

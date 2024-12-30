@@ -1,3 +1,6 @@
+require "json"
+require "../parser/vk.cr"
+
 module Turnir::ChatStorage::Types
   struct VkUserFields
     include JSON::Serializable
@@ -5,10 +8,10 @@ module Turnir::ChatStorage::Types
     property nickColor : Int32
     property isChatModerator : Bool
     property isChannelModerator : Bool
-    property roles : Array(Turnir::Parsing::VkMessage::Role)
-    property badges : Array(Turnir::Parsing::VkMessage::Badge)
+    property roles : Array(Turnir::Parser::Vk::Role)
+    property badges : Array(Turnir::Parser::Vk::Badge)
 
-    def initialize(nickColor : Int32, isChatModerator : Bool, isChannelModerator : Bool, roles : Array(Turnir::Parsing::VkMessage::Role), badges : Array(Turnir::Parsing::VkMessage::Badge))
+    def initialize(nickColor : Int32, isChatModerator : Bool, isChannelModerator : Bool, roles : Array(Turnir::Parser::Vk::Role), badges : Array(Turnir::Parser::Vk::Badge))
       @nickColor = nickColor
       @isChatModerator = isChatModerator
       @isChannelModerator = isChannelModerator
@@ -34,9 +37,9 @@ module Turnir::ChatStorage::Types
   struct VkMessageFields
     include JSON::Serializable
 
-    property mentions : Array(Turnir::Parsing::VkMessage::ContentDataMention)
+    property mentions : Array(Turnir::Parser::Vk::ContentDataMention)
 
-    def initialize(mentions : Array(Turnir::Parsing::VkMessage::ContentDataMention))
+    def initialize(mentions : Array(Turnir::Parser::Vk::ContentDataMention))
       @mentions = mentions
     end
   end

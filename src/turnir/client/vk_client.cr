@@ -2,7 +2,7 @@ require "json"
 require "xml"
 require "http/client"
 
-require "../parsing/vk_message"
+require "../parser/vk"
 require "./channel_mapper"
 
 module Turnir::Client::VkWebsocket
@@ -74,7 +74,7 @@ module Turnir::Client::VkWebsocket
 
   def parse_message(json_message)
     begin
-      parsed = Turnir::Parsing::VkMessage::ChatMessage.from_json(json_message)
+      parsed = Turnir::Parser::Vk::ChatMessage.from_json(json_message)
     rescue ex
       log "Failed to parse message: #{ex.inspect}"
       log "Message: #{json_message.inspect}"
@@ -89,11 +89,11 @@ module Turnir::Client::VkWebsocket
     end
 
     message_data = parsed.push.pub.data.data.data
-    mentions = Array(Turnir::Parsing::VkMessage::ContentDataMention).new
+    mentions = Array(Turnir::Parser::Vk::ContentDataMention).new
 
     text = String.build do |io|
       message_data.each do |data|
-        if data.is_a?(Turnir::Parsing::VkMessage::ContentDataText) && data.type == "text" && !data.content.empty?
+        if data.is_a?(Turnir::Parser::Vk::ContentDataText) && data.type == "text" && !data.content.empty?
           begin
             io << Array(JSON::Any).from_json(data.content)[0].to_s
           rescue ex
@@ -101,7 +101,7 @@ module Turnir::Client::VkWebsocket
             log "Content: #{data.inspect}"
           end
         end
-        if data.is_a?(Turnir::Parsing::VkMessage::ContentDataMention) && data.type == "mention"
+        if data.is_a?(Turnir::Parser::Vk::ContentDataMention) && data.type == "mention"
           mentions << data
         end
       end

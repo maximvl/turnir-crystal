@@ -1,4 +1,4 @@
-module Turnir::Parsing::NuumMessage
+module Turnir::Parser::Nuum
   struct EventsResponse
     include JSON::Serializable
     property result : Array(Event)
