@@ -2,7 +2,6 @@ require "json"
 require "http/client"
 
 require "../parser/nuum"
-require "./channel_mapper"
 
 module Turnir::Client::NuumPolling
   extend self
@@ -25,6 +24,8 @@ module Turnir::Client::NuumPolling
 
   SUBSCRIBED_CHATS = Set(String).new
 
+  @@channels_map = {} of String => String
+
   LAST_TS_PER_CHAT = {} of String => String
 
   def log(msg : String)
@@ -32,8 +33,10 @@ module Turnir::Client::NuumPolling
     puts msg
   end
 
-  def start(sync_channel : Channel(Nil), storage : Turnir::ChatStorage::Storage)
+  def start(sync_channel : Channel(Nil), storage : Turnir::ChatStorage::Storage, channels_map : Hash(String, String))
     @@storage = storage
+    @@channels_map = channels_map
+
     sync_channel.send(nil)
     loop do
       SUBSCRIBED_CHATS.each do |chat|
@@ -55,7 +58,7 @@ module Turnir::Client::NuumPolling
       return
     end
     channel = chat_id.to_s
-    Turnir::Client::ChannelMapper.set_nuum_channel(channel_name, channel)
+    @@channels_map[channel_name] = channel
     SUBSCRIBED_CHATS << channel
   end
 

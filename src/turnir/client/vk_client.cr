@@ -3,7 +3,6 @@ require "xml"
 require "http/client"
 
 require "../parser/vk"
-require "./channel_mapper"
 
 module Turnir::Client::VkWebsocket
   extend self
@@ -17,13 +16,14 @@ module Turnir::Client::VkWebsocket
   WebsocketMutex = Mutex.new
 
   @@message_counter = 0
+  @@channels_map = {} of String => String
 
   def log(msg)
     print "[VkvideoWS] "
     puts msg
   end
 
-  def start(sync_channel : Channel(Nil), storage : Turnir::ChatStorage::Storage)
+  def start(sync_channel : Channel(Nil), storage : Turnir::ChatStorage::Storage, channels_map : Hash(String, String))
     app_config = get_vk_app_config()
     if app_config.nil?
       log "Failed to get vk token"
@@ -31,6 +31,7 @@ module Turnir::Client::VkWebsocket
     end
 
     log "Got app config: #{app_config.inspect}"
+    @@channels_map = channels_map
 
     WebsocketMutex.synchronize do
       if @@websocket.nil?
@@ -142,7 +143,7 @@ module Turnir::Client::VkWebsocket
     end
 
     channel = "channel-chat:#{channel_id}"
-    Turnir::Client::ChannelMapper.set_vk_channel(channel_name, channel)
+    @@channels_map[channel_name] = channel
     send_subscribe(channel)
   end
 

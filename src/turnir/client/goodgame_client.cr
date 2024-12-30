@@ -3,7 +3,6 @@ require "http/client"
 
 require "../parser/goodgame"
 require "../chat_storage/types"
-require "./channel_mapper"
 
 module Turnir::Client::GoodgameWebsocket
   extend self
@@ -19,13 +18,17 @@ module Turnir::Client::GoodgameWebsocket
     "Accept" => "application/json",
   }
 
+  @@channels_map = {} of String => String
+
   def log(msg : String)
     print "[GoodgameWS] "
     puts msg
   end
 
-  def start(ready_channel : Channel(Nil), storage : Turnir::ChatStorage::Storage)
+  def start(ready_channel : Channel(Nil), storage : Turnir::ChatStorage::Storage, channels_map : Hash(String, String))
     log "Starting Goodgame websocket"
+
+    @@channels_map = channels_map
 
     WebsocketMutex.synchronize do
       if @@websocket.nil?
@@ -104,7 +107,7 @@ module Turnir::Client::GoodgameWebsocket
 
     channel_id = channel_id.to_s()
 
-    Turnir::Client::ChannelMapper.set_goodgame_channel(channel_name, channel_id)
+    @@channels_map[channel_name] = channel_id
 
     join_msg = {
       type: "join",

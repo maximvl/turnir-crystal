@@ -11,13 +11,15 @@ module Turnir::Client::TwitchWebsocket
   WebsocketMutex = Mutex.new
 
   @@message_counter = 0
+  @@channels_map = {} of String => String
 
   def log(msg)
     print "[TwitchWS] "
     puts msg
   end
 
-  def start(sync_channel : Channel(Nil), storage : Turnir::ChatStorage::Storage)
+  def start(sync_channel : Channel(Nil), storage : Turnir::ChatStorage::Storage, channels_map : Hash(String, String))
+    @@channels_map = channels_map
     WebsocketMutex.synchronize do
       if @@websocket.nil?
         @@websocket = HTTP::WebSocket.new(
@@ -67,6 +69,7 @@ module Turnir::Client::TwitchWebsocket
       return
     end
 
+    @@channels_map[channel_name] = channel_name
     websocket.send("JOIN ##{channel_name}")
   end
 

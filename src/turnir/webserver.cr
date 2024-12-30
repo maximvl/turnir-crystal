@@ -34,6 +34,13 @@ module Turnir::Webserver
     r.urlsafe_base64(size)
   end
 
+  ClientTypes = {
+    "vkvideo" => Turnir::Client::ClientType::VK,
+    "twitch" => Turnir::Client::ClientType::TWITCH,
+    "nuum" => Turnir::Client::ClientType::NUUM,
+    "goodgame" => Turnir::Client::ClientType::GOODGAME,
+  }
+
   def get_session_id(context : HTTP::Server::Context)
     cookies = context.request.cookies
     if cookies.has_key?("session_id")
@@ -64,55 +71,24 @@ module Turnir::Webserver
     end
 
     platform = query_params.fetch("platform", nil)
-    if platform.nil?
-      context.response.status = HTTP::Status::BAD_REQUEST
-      context.response.print ({"error" => "platform is required"}).to_json
-      return
-    end
-
     ts_filter = query_params.fetch("ts", "0").to_i
     text_filter = query_params.fetch("text_filter", "")
 
     items = [] of Turnir::ChatStorage::Types::ChatMessage
-    if platform == "vkvideo"
-      Turnir::Client.ensure_client_running(Turnir::Client::ClientType::VK)
-      channel_id = Turnir::Client::ChannelMapper.get_vk_channel(channel)
-      if channel_id.nil?
-        context.response.status = HTTP::Status::BAD_REQUEST
-        context.response.print ({"error" => "channel not found"}).to_json
-        return
-      end
 
-      items = Turnir::Client.get_messages(Turnir::Client::ClientType::VK, channel_id, ts_filter, text_filter.downcase)
+    client_type = ClientTypes.fetch(platform, nil)
+    if client_type.nil?
+      context.response.status = HTTP::Status::BAD_REQUEST
+      context.response.print ({"error" => "platform not supported"}).to_json
+      return
     end
 
-    if platform == "twitch"
-      Turnir::Client.ensure_client_running(Turnir::Client::ClientType::TWITCH)
-      items = Turnir::Client.get_messages(Turnir::Client::ClientType::TWITCH, channel, ts_filter, text_filter.downcase)
-    end
+    items = Turnir::Client.get_messages(client_type, channel, ts_filter, text_filter.downcase)
 
-    if platform == "nuum"
-      channel_id = Turnir::Client::ChannelMapper.get_nuum_channel(channel)
-      if channel_id.nil?
-        context.response.status = HTTP::Status::BAD_REQUEST
-        context.response.print ({"error" => "channel not found"}).to_json
-        return
-      end
-
-      Turnir::Client.ensure_client_running(Turnir::Client::ClientType::NUUM)
-      items = Turnir::Client.get_messages(Turnir::Client::ClientType::NUUM, channel_id, ts_filter, text_filter.downcase)
-    end
-
-    if platform == "goodgame"
-      channel_id = Turnir::Client::ChannelMapper.get_goodgame_channel(channel)
-      if channel_id.nil?
-        context.response.status = HTTP::Status::BAD_REQUEST
-        context.response.print ({"error" => "channel not found"}).to_json
-        return
-      end
-
-      Turnir::Client.ensure_client_running(Turnir::Client::ClientType::GOODGAME)
-      items = Turnir::Client.get_messages(Turnir::Client::ClientType::GOODGAME, channel_id, ts_filter, text_filter.downcase)
+    if items.nil?
+      context.response.status = HTTP::Status::BAD_REQUEST
+      context.response.print ({"error" => "channel not found"}).to_json
+      return
     end
 
     context.response.print ({"chat_messages" => items}).to_json
@@ -158,31 +134,16 @@ module Turnir::Webserver
     platform = query_params.fetch("platform", nil)
 
     supported_platforms = ["vkvideo", "twitch", "nuum", "goodgame"]
-    if supported_platforms.includes?(platform) == false
+    client_type = ClientTypes.fetch(platform, nil)
+
+    if client_type.nil?
       context.response.status = HTTP::Status::BAD_REQUEST
       context.response.print ({"error" => "platform is not supported"}).to_json
       return
     end
 
-    if platform == "vkvideo"
-      Turnir::Client.ensure_client_running(Turnir::Client::ClientType::VK)
-      Turnir::Client.subscribe_to_channel(Turnir::Client::ClientType::VK, channel_name)
-    end
-
-    if platform == "twitch"
-      Turnir::Client.ensure_client_running(Turnir::Client::ClientType::TWITCH)
-      Turnir::Client.subscribe_to_channel(Turnir::Client::ClientType::TWITCH, channel_name)
-    end
-
-    if platform == "nuum"
-      Turnir::Client.ensure_client_running(Turnir::Client::ClientType::NUUM)
-      Turnir::Client.subscribe_to_channel(Turnir::Client::ClientType::NUUM, channel_name)
-    end
-
-    if platform == "goodgame"
-      Turnir::Client.ensure_client_running(Turnir::Client::ClientType::GOODGAME)
-      Turnir::Client.subscribe_to_channel(Turnir::Client::ClientType::GOODGAME, channel_name)
-    end
+    Turnir::Client.ensure_client_running(client_type)
+    Turnir::Client.subscribe_to_channel(client_type, channel_name)
 
     context.response.print ({"status" => "ok"}).to_json
   end

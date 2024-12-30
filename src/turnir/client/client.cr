@@ -21,7 +21,8 @@ module Turnir::Client
     property fiber : Fiber | Nil = nil
     property ready_channel = Channel(Nil).new(0)
     property mutex = Mutex.new
-    property storage = Turnir::ChatStorage::Storage.new
+    property storage = Turnir::ChatStorage::Storage.new()
+    property channels_map = {} of String => String
 
     def initialize(client_type : ClientType, mod : ClientModule)
       @client_type = client_type
@@ -36,13 +37,12 @@ module Turnir::Client
     ClientType::GOODGAME => Client.new(ClientType::GOODGAME, Turnir::Client::GoodgameWebsocket),
   }
 
-
   def ensure_client_running(client_type : ClientType)
     client = CLIENTS[client_type]
     client.mutex.synchronize do
       if client.fiber.nil? || client.fiber.try &.dead?
         client.fiber = spawn do
-          client.mod.start(client.ready_channel, client.storage)
+          client.mod.start(client.ready_channel, client.storage, client.channels_map)
         end
         client.ready_channel.receive()
       end
@@ -52,7 +52,13 @@ module Turnir::Client
   def get_messages(client_type : ClientType, channel : String, since : Int32, text_filter : String)
     client = CLIENTS[client_type]
     ensure_client_running(client_type)
-    client.storage.get_messages(channel, since, text_filter)
+
+    channel_internal = client.channels_map[channel]
+    if channel_internal.nil?
+      nil
+    end
+
+    client.storage.get_messages(channel_internal, since, text_filter)
   end
 
   def clear_messages(client_type : ClientType)
