@@ -15,6 +15,11 @@ module Turnir::Client
 
   alias ClientModule = Turnir::Client::VkWebsocket | Turnir::Client::TwitchWebsocket | Turnir::Client::NuumPolling | Turnir::Client::GoodgameWebsocket
 
+  def log(msg)
+    print "[Client] "
+    puts msg
+  end
+
   class Client
     property client_type : ClientType
     property mod : ClientModule
@@ -53,9 +58,11 @@ module Turnir::Client
     client = CLIENTS[client_type]
     ensure_client_running(client_type)
 
-    channel_internal = client.channels_map[channel]
+    # log "Getting messages for #{channel} #{client.channels_map}"
+
+    channel_internal = client.channels_map.fetch(channel, nil)
     if channel_internal.nil?
-      nil
+      return nil
     end
 
     client.storage.get_messages(channel_internal, since, text_filter)

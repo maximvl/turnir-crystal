@@ -2,24 +2,27 @@ require "./types"
 require "../parser/vk"
 require "../parser/nuum"
 require "../parser/goodgame"
+require "../parser/twitch"
 
 module Turnir::ChatStorage::Types
   struct ChatMessage
     include JSON::Serializable
 
-    property id : Int64
+    property id : String
     property ts : Int64
     property message : String
     property user : ChatUser
     property vk_fields : VkMessageFields | Nil
     property channel : String
+    property twitch_fields : Turnir::Parser::Twitch::UserInfo | Nil
 
-    def initialize(id : Int64, ts : Int64, message : String, channel : String, user : ChatUser, vkFields : VkMessageFields | Nil = nil)
+    def initialize(id : String, ts : Int64, message : String, channel : String, user : ChatUser, vk_fields : VkMessageFields | Nil = nil, twitch_fields : Turnir::Parser::Twitch::UserInfo | Nil = nil)
         @id = id
         @ts = ts
         @message = message
         @user = user
-        @vk_fields = vkFields
+        @vk_fields = vk_fields
+        @twitch_fields = twitch_fields
         @channel = channel
     end
 
@@ -41,8 +44,8 @@ module Turnir::ChatStorage::Types
       )
 
       user = ChatUser.new(id: user_id.to_s(), username: username, vk_fields: customFields)
-      vkFields = VkMessageFields.new(mentions)
-      new(id: message_id, ts: created_at, message: text, user: user, vkFields: vkFields, channel: message.push.channel)
+      vk_fields = VkMessageFields.new(mentions)
+      new(id: message_id.to_s(), ts: created_at, message: text, user: user, vk_fields: vk_fields, channel: message.push.channel)
     end
 
     def self.from_nuum_message(message : Turnir::Parser::Nuum::Event, channel : String)
@@ -56,7 +59,7 @@ module Turnir::ChatStorage::Types
       text = message.eventData.text.strip()
 
       user = ChatUser.new(id: user_id.to_s(), username: username)
-      new(id: message.id, ts: created_at, message: text, user: user, channel: channel)
+      new(id: message.id.to_s(), ts: created_at, message: text, user: user, channel: channel)
     end
 
     def self.from_goodgame_message(message : Turnir::Parser::Goodgame::ChatMessage)
@@ -69,7 +72,13 @@ module Turnir::ChatStorage::Types
       channel_id = data.channel_id
 
       user = ChatUser.new(id: user_id.to_s(), username: username)
-      new(id: message_id, ts: created_at, message: data.text, user: user, channel: channel_id)
+      new(id: message_id.to_s(), ts: created_at, message: data.text, user: user, channel: channel_id)
+    end
+
+    def self.from_twitch_message(
+      id : Int64, ts : Int64, message : String, user : ChatUser, channel : String, user_info : Turnir::Parser::Twitch::UserInfo)
+
+      new(id: id.to_s(), ts: ts, message: message, channel: channel, user: user, vk_fields: nil, twitch_fields: user_info)
     end
   end
 end
