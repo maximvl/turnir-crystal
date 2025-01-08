@@ -1,5 +1,6 @@
 require "json"
 require "../parser/vk.cr"
+require "../parser/twitch"
 
 module Turnir::ChatStorage::Types
   struct VkUserFields
@@ -26,11 +27,13 @@ module Turnir::ChatStorage::Types
     property id : String
     property username : String
     property vk_fields : VkUserFields?
+    property twitch_fields : Turnir::Parser::Twitch::UserInfo?
 
-    def initialize(id : String, username : String, vk_fields : VkUserFields? = nil)
+    def initialize(id : String, username : String, vk_fields : VkUserFields? = nil, twitch_fields : Turnir::Parser::Twitch::UserInfo? = nil)
       @id = id
       @username = username
       @vk_fields = vk_fields
+      @twitch_fields = twitch_fields
     end
   end
 

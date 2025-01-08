@@ -135,15 +135,18 @@ module Turnir::Client::TwitchWebsocket
     @@message_counter += 1
     message_id = @@message_counter
 
-    user_name = user_part.split("!")[0][1..-1]
-    user = Turnir::ChatStorage::Types::ChatUser.new(username: user_name, id: user_name)
-
     user_info = parse_badges(channel, badges_part)
-    user.username = user_info.display_name || user.username
+
+    user_name = user_part.split("!")[0][1..-1]
+    user = Turnir::ChatStorage::Types::ChatUser.new(
+      id: user_name,
+      username: user_info.display_name || user_name,
+      twitch_fields: user_info
+    )
 
     # log "Parsed message: #{channel} #{user.username}: #{message}"
 
-    Turnir::ChatStorage::Types::ChatMessage.from_twitch_message(id: message_id, ts: ts, message: message, user: user, channel: channel, user_info: user_info)
+    Turnir::ChatStorage::Types::ChatMessage.new(id: message_id.to_s(), ts: ts, message: message, user: user, channel: channel)
   end
 
   def parse_badges(channel_name : String, badges_str : String) : Turnir::Parser::Twitch::UserInfo

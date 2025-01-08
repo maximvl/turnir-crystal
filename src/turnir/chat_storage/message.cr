@@ -2,7 +2,6 @@ require "./types"
 require "../parser/vk"
 require "../parser/nuum"
 require "../parser/goodgame"
-require "../parser/twitch"
 
 module Turnir::ChatStorage::Types
   struct ChatMessage
@@ -14,15 +13,13 @@ module Turnir::ChatStorage::Types
     property user : ChatUser
     property vk_fields : VkMessageFields | Nil
     property channel : String
-    property twitch_fields : Turnir::Parser::Twitch::UserInfo | Nil
 
-    def initialize(id : String, ts : Int64, message : String, channel : String, user : ChatUser, vk_fields : VkMessageFields | Nil = nil, twitch_fields : Turnir::Parser::Twitch::UserInfo | Nil = nil)
+    def initialize(id : String, ts : Int64, message : String, channel : String, user : ChatUser, vk_fields : VkMessageFields | Nil = nil)
         @id = id
         @ts = ts
         @message = message
         @user = user
         @vk_fields = vk_fields
-        @twitch_fields = twitch_fields
         @channel = channel
     end
 
@@ -73,12 +70,6 @@ module Turnir::ChatStorage::Types
 
       user = ChatUser.new(id: user_id.to_s(), username: username)
       new(id: message_id.to_s(), ts: created_at, message: data.text, user: user, channel: channel_id)
-    end
-
-    def self.from_twitch_message(
-      id : Int64, ts : Int64, message : String, user : ChatUser, channel : String, user_info : Turnir::Parser::Twitch::UserInfo)
-
-      new(id: id.to_s(), ts: ts, message: message, channel: channel, user: user, vk_fields: nil, twitch_fields: user_info)
     end
   end
 end
