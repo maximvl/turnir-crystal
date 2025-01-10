@@ -16,5 +16,8 @@ COPY . /app
 RUN shards install
 RUN crystal build src/turnir.cr -o turnir.bin --error-trace
 
+# set environment variables
+ENV IP 0.0.0.0
+
 # start app
 CMD ["/app/turnir.bin"]
