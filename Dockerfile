@@ -1,11 +1,18 @@
-FROM debian:12-slim
+FROM crystallang/crystal:1.14-alpine
 
 # Set environment variables to non-interactive to avoid prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && \
-    apt-get install -y curl libsqlite3-dev liblzma-dev && \
-    curl -fsSL https://crystal-lang.org/install.sh | bash
+RUN apk update && apk add --no-cache \
+    sqlite-dev \
+    xz-dev
 
+# Set the working directory
+WORKDIR /app
 
-# crystal build src/turnir.cr -o bin/turnir.bin
+# copy project files
+COPY . /app
+RUN crystal build src/turnir.cr -o turnir.bin --error-trace
+
+# start app
+CMD ["/app/turnir.bin"]
