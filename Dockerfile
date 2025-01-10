@@ -12,7 +12,7 @@ WORKDIR /app
 
 # copy project files
 COPY . /app
-RUN crystal build src/turnir.cr -o turnir.bin --error-trace
+RUN cd /app && crystal build src/turnir.cr -o turnir.bin --error-trace
 
 # start app
 CMD ["/app/turnir.bin"]
