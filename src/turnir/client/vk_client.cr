@@ -7,7 +7,7 @@ require "../parser/vk"
 module Turnir::Client::VkWebsocket
   extend self
 
-  WS_URL = "wss://pubsub.live.vkvideo.ru/connection/websocket?cf_protocol_version=v2"
+  WS_URL  = "wss://pubsub.live.vkvideo.ru/connection/websocket?cf_protocol_version=v2"
   Headers = HTTP::Headers{"Origin" => "https://live.vkvideo.ru"}
 
   CHANNEL_INFO_URL = "https://api.live.vkvideo.ru/v1/blog/{{name}}/public_video_stream/chat/user/"
@@ -37,7 +37,7 @@ module Turnir::Client::VkWebsocket
       if @@websocket.nil?
         @@websocket = HTTP::WebSocket.new(
           WS_URL,
-          headers=Headers,
+          headers = Headers,
         )
       end
     end
@@ -69,7 +69,7 @@ module Turnir::Client::VkWebsocket
     send_login(app_config.websocket.token)
 
     sync_channel.send(nil)
-    websocket.run()
+    websocket.run
     @@websocket = nil
   end
 
@@ -130,7 +130,7 @@ module Turnir::Client::VkWebsocket
     @@message_counter += 1
     login_message = {
       "connect" => {"token" => vk_token, "name" => "js"},
-      "id" => @@message_counter,
+      "id"      => @@message_counter,
     }
     @@websocket.try { |ws| ws.send(login_message.to_json) }
   end
@@ -153,7 +153,7 @@ module Turnir::Client::VkWebsocket
     @@message_counter += 1
     subscribe_message = {
       "subscribe" => {"channel" => channel},
-      "id" => @@message_counter,
+      "id"        => @@message_counter,
     }
     @@websocket.try { |ws| ws.send(subscribe_message.to_json) }
   end

@@ -7,7 +7,7 @@ require "../chat_storage/types"
 module Turnir::Client::GoodgameWebsocket
   extend self
 
-  WS_URL = "wss://chat-1.goodgame.ru/chat2/"
+  WS_URL         = "wss://chat-1.goodgame.ru/chat2/"
   @@websocket : HTTP::WebSocket | Nil = nil
   WebsocketMutex = Mutex.new
 
@@ -34,8 +34,8 @@ module Turnir::Client::GoodgameWebsocket
       if @@websocket.nil?
         @@websocket = HTTP::WebSocket.new(
           WS_URL,
-          headers=HTTP::Headers{
-            "Origin" => "https://goodgame.ru"
+          headers = HTTP::Headers{
+            "Origin" => "https://goodgame.ru",
           },
         )
 
@@ -44,7 +44,7 @@ module Turnir::Client::GoodgameWebsocket
             type: "auth",
             data: {
               user_id: 0,
-            }
+            },
           }.to_json
           websocket.send(auth_msg)
         end
@@ -72,7 +72,7 @@ module Turnir::Client::GoodgameWebsocket
     end
 
     ready_channel.send(nil)
-    websocket.run()
+    websocket.run
     @@websocket = nil
   end
 
@@ -105,7 +105,7 @@ module Turnir::Client::GoodgameWebsocket
       return
     end
 
-    channel_id = channel_id.to_s()
+    channel_id = channel_id.to_s
 
     @@channels_map[channel_name] = channel_id
 
@@ -113,9 +113,9 @@ module Turnir::Client::GoodgameWebsocket
       type: "join",
       data: {
         channel_id: channel_id,
-        hidden: 0,
-        reload: false,
-      }
+        hidden:     0,
+        reload:     false,
+      },
     }.to_json
 
     websocket.try { |ws| ws.send(join_msg) }

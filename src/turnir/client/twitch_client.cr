@@ -18,8 +18,8 @@ module Turnir::Client::TwitchWebsocket
   @@broadcasters_map = {} of String => String
 
   Headers = HTTP::Headers{
-    "Client-ID" => Turnir::Config::TWITCH_CLIENT_ID,
-    "Authorization" => "Bearer #{Turnir::Config::TWITCH_OAUTH_TOKEN}"
+    "Client-ID"     => Turnir::Config::TWITCH_CLIENT_ID,
+    "Authorization" => "Bearer #{Turnir::Config::TWITCH_OAUTH_TOKEN}",
   }
 
   def log(msg)
@@ -33,8 +33,8 @@ module Turnir::Client::TwitchWebsocket
       if @@websocket.nil?
         @@websocket = HTTP::WebSocket.new(
           "wss://irc-ws.chat.twitch.tv:443",
-          headers=HTTP::Headers{
-            "Origin" => "https://www.twitch.tv"
+          headers = HTTP::Headers{
+            "Origin" => "https://www.twitch.tv",
           },
         )
       end
@@ -71,7 +71,7 @@ module Turnir::Client::TwitchWebsocket
     websocket.send("NICK #{Turnir::Config::TWITCH_NICK}")
     websocket.send("CAP REQ :twitch.tv/tags")
     sync_channel.send(nil)
-    websocket.run()
+    websocket.run
     @@websocket = nil
   end
 
@@ -82,7 +82,7 @@ module Turnir::Client::TwitchWebsocket
       return
     end
 
-    internal_channel = "##{channel_name.downcase()}"
+    internal_channel = "##{channel_name.downcase}"
     @@channels_map[channel_name] = internal_channel
 
     if @@channel_badges_map.fetch(internal_channel, nil).nil?
@@ -113,13 +113,13 @@ module Turnir::Client::TwitchWebsocket
 
     if privmsg_index == 1
       user_part = parts[0]
-      channel = parts[2].downcase()
-      message = parts[3..-1].join(" ").strip()
+      channel = parts[2].downcase
+      message = parts[3..-1].join(" ").strip
     elsif privmsg_index == 2
       badges_part = parts[0]
       user_part = parts[1]
-      channel = parts[3].downcase()
-      message = parts[4..-1].join(" ").strip()
+      channel = parts[3].downcase
+      message = parts[4..-1].join(" ").strip
     end
 
     if user_part.nil? || message.nil? || channel.nil?
@@ -146,7 +146,7 @@ module Turnir::Client::TwitchWebsocket
 
     # log "Parsed message: #{channel} #{user.username}: #{message}"
 
-    Turnir::ChatStorage::Types::ChatMessage.new(id: message_id.to_s(), ts: ts, message: message, user: user, channel: channel)
+    Turnir::ChatStorage::Types::ChatMessage.new(id: message_id.to_s, ts: ts, message: message, user: user, channel: channel)
   end
 
   def parse_badges(channel_name : String, badges_str : String) : Turnir::Parser::Twitch::UserInfo
@@ -164,7 +164,7 @@ module Turnir::Client::TwitchWebsocket
         items.each do |item|
           item_parts = item.split("/")
           if item_parts.size == 2
-            badge = get_global_badge(item_parts[0],item_parts[1])
+            badge = get_global_badge(item_parts[0], item_parts[1])
             if badge.nil?
               badge = get_channel_badge(channel_name, item_parts[0], item_parts[1])
             end

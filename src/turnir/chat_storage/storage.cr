@@ -1,7 +1,6 @@
 require "./message"
 
 module Turnir::ChatStorage
-
   extend self
 
   class Storage
@@ -11,7 +10,7 @@ module Turnir::ChatStorage
 
     MESSAGES_LIMIT = 2000
 
-    def initialize()
+    def initialize
       @storage = [] of Turnir::ChatStorage::Types::ChatMessage
       @storage_mutex = Mutex.new
       @last_access = Time.utc
@@ -26,12 +25,12 @@ module Turnir::ChatStorage
       end
     end
 
-    def get_messages(channel : String, since : Int32, text_filter : String)
+    def get_messages(channel : String, since : Int64, text_filter : String)
       @last_access = Time.utc
       # puts "Fetching messages for #{channel}"
       # puts "Messages: #{Storage.size}"
       @storage_mutex.synchronize do
-        @storage.select { |msg| msg.channel == channel && msg.ts >= since && msg.message.downcase().includes?(text_filter)  }
+        @storage.select { |msg| msg.channel == channel && msg.ts >= since && msg.message.downcase.includes?(text_filter) }
       end
     end
 

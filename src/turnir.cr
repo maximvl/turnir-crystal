@@ -11,12 +11,12 @@ Turnir::DbStorage.create_tables
 # exit 0
 
 spawn do
-  Turnir::Client.client_auto_stopper()
+  Turnir::Client.client_auto_stopper
 end
 
-#spawn do
+# spawn do
 #  Turnir.ensure_twitch_websocket_running
 #  Turnir::WSClient::TwitchClient.subscribe_to_channel("roadhouse")
-#end
+# end
 
-Turnir::Webserver.start()
+Turnir::Webserver.start

@@ -9,13 +9,13 @@ module Turnir::Client::NuumPolling
   @@message_counter = 0
 
   HEADERS = HTTP::Headers{
-    "Origin" => "https://nuum.ru",
-    "Accept" => "application/json",
-    "Content-Type" => "application/json"
+    "Origin"       => "https://nuum.ru",
+    "Accept"       => "application/json",
+    "Content-Type" => "application/json",
   }
 
   PUBLIC_CHANNEL_URL = "https://nuum.ru/api/v2/broadcasts/public?channel_name={{channel}}"
-  CHAT_URL = "https://nuum.ru/api/v3/chats?contentType={{type}}&contentId={{id}}"
+  CHAT_URL           = "https://nuum.ru/api/v3/chats?contentType={{type}}&contentId={{id}}"
 
   EVENTS_URL = "https://nuum.ru/api/v3/events/{{chat_id}}/events"
 
@@ -43,7 +43,8 @@ module Turnir::Client::NuumPolling
         fetch_events(chat)
       end
 
-      select when @@stop_channel.receive?
+      select
+      when @@stop_channel.receive?
         break
       else
         sleep 2.seconds
@@ -99,8 +100,8 @@ module Turnir::Client::NuumPolling
 
     body = {
       "timestampStart" => LAST_TS_PER_CHAT.fetch(chat_id, last_5_mins),
-      "sort" => "ASC",
-      "eventTypes" => ["MESSAGE"],
+      "sort"           => "ASC",
+      "eventTypes"     => ["MESSAGE"],
     }
 
     response = HTTP::Client.post(events_url, headers: HEADERS, body: body.to_json)
@@ -124,8 +125,8 @@ module Turnir::Client::NuumPolling
   end
 
   def stop
-    SUBSCRIBED_CHATS.clear()
+    SUBSCRIBED_CHATS.clear
     @@stop_channel.send(1)
-    LAST_TS_PER_CHAT.clear()
+    LAST_TS_PER_CHAT.clear
   end
 end
