@@ -80,4 +80,14 @@ module Turnir::Parser::Vk
     property name : String
     property type : String
   end
+
+  struct AnyMessage
+    include JSON::Serializable
+    property push : AnyPush
+  end
+
+  struct AnyPush
+    include JSON::Serializable
+    property channel : String
+  end
 end

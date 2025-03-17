@@ -15,8 +15,11 @@ module Turnir::Client::VkWebsocket
   @@websocket : HTTP::WebSocket | Nil = nil
   WebsocketMutex = Mutex.new
 
+  SERVER_NAME = Turnir::Client::ClientType::VKVIDEO.to_s.downcase
+
   @@message_counter = 0
   @@channels_map = {} of String => String
+  @@reverse_channels_map = {} of String => String
 
   def log(msg)
     print "[VkvideoWS] "
@@ -32,6 +35,7 @@ module Turnir::Client::VkWebsocket
 
     log "Got app config: #{app_config.inspect}"
     @@channels_map = channels_map
+    @@reverse_channels_map = channels_map.invert
 
     WebsocketMutex.synchronize do
       if @@websocket.nil?
@@ -62,6 +66,7 @@ module Turnir::Client::VkWebsocket
 
     websocket.on_close do |code|
       log "Websocket Closed: #{code}"
+      Turnir::Client.clear_streams_statuses_for_client(Turnir::Client::ClientType::VKVIDEO)
       @@websocket = nil
     end
 
@@ -74,6 +79,18 @@ module Turnir::Client::VkWebsocket
   end
 
   def parse_message(json_message)
+    begin
+      parsed = Turnir::Parser::Vk::AnyMessage.from_json(json_message)
+      channel_name = @@reverse_channels_map.fetch(parsed.push.channel, nil)
+      if channel_name
+        Turnir::Client.update_stream_status(
+          "#{SERVER_NAME}/#{channel_name}",
+          Turnir::Client::ConnectionStatus::CONNECTED,
+        )
+      end
+    rescue ex
+    end
+
     begin
       parsed = Turnir::Parser::Vk::ChatMessage.from_json(json_message)
     rescue ex
@@ -144,6 +161,7 @@ module Turnir::Client::VkWebsocket
 
     channel = "channel-chat:#{channel_id}"
     @@channels_map[channel_name] = channel
+    @@reverse_channels_map[channel] = channel_name
     send_subscribe(channel)
   end
 

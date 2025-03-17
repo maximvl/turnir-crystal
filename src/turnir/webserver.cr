@@ -10,6 +10,7 @@ module Turnir::Webserver
     /^\/v2\/turnir-api\/chat_messages$/        => ->get_chat_messages(HTTP::Server::Context),
     /^\/v2\/turnir-api\/chat_messages\/clear$/ => ->clear_messages(HTTP::Server::Context),
     /^\/v2\/turnir-api\/chat_connect$/         => ->connect_to_chat(HTTP::Server::Context),
+    /^\/v2\/turnir-api\/chat_connections$/     => ->chat_connections(HTTP::Server::Context),
     /^\/v2\/turnir-api\/presets$/              => ->save_preset(HTTP::Server::Context),
     /^\/v2\/turnir-api\/presets\/(.+)$/        => ->get_or_update_preset(HTTP::Server::Context),
     /^\/v2\/turnir-api\/version$/              => ->get_version(HTTP::Server::Context),
@@ -57,7 +58,7 @@ module Turnir::Webserver
   end
 
   ClientTypes = {
-    "vkvideo"  => Turnir::Client::ClientType::VK,
+    "vkvideo"  => Turnir::Client::ClientType::VKVIDEO,
     "twitch"   => Turnir::Client::ClientType::TWITCH,
     "nuum"     => Turnir::Client::ClientType::NUUM,
     "goodgame" => Turnir::Client::ClientType::GOODGAME,
@@ -131,7 +132,7 @@ module Turnir::Webserver
     end
     get_session_id(context)
 
-    Turnir::Client.clear_messages(Turnir::Client::ClientType::VK)
+    Turnir::Client.clear_messages(Turnir::Client::ClientType::VKVIDEO)
     Turnir::Client.clear_messages(Turnir::Client::ClientType::TWITCH)
 
     context.response.content_type = "application/json"
@@ -170,6 +171,16 @@ module Turnir::Webserver
     Turnir::Client.subscribe_to_channel(client_type, channel_name)
 
     context.response.print ({"status" => "ok"}).to_json
+  end
+
+  def chat_connections(context : HTTP::Server::Context)
+    if context.request.method != "GET"
+      raise MethodNotSupported.new("Method #{context.request.method} not supported")
+    end
+    get_session_id(context)
+
+    context.response.content_type = "application/json"
+    context.response.print ({"connections" => Turnir::Client.get_connections_statuses}).to_json
   end
 
   def save_preset(context : HTTP::Server::Context)
@@ -289,7 +300,6 @@ module Turnir::Webserver
       winners = DbStorage.get_loto_winners(stream_channel)
       context.response.content_type = "application/json"
       context.response.print ({"winners" => winners}).to_json
-
     elsif context.request.method == "POST"
       request = nil
       begin
@@ -326,7 +336,7 @@ module Turnir::Webserver
         return
       end
 
-      # stream channel is a string with server and channel separated by comma
+      # stream channel is a string with server and channel separated by slash
       stream_channel = "#{request.server}/#{request.channel}"
 
       # map of username to id

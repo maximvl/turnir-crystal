@@ -7,7 +7,7 @@ module Turnir::Client
   extend self
 
   enum ClientType
-    VK
+    VKVIDEO
     TWITCH
     NUUM
     GOODGAME
@@ -19,6 +19,15 @@ module Turnir::Client
     print "[Client] "
     puts msg
   end
+
+  enum ConnectionStatus
+    DISCONNECTED
+    CONNECTING
+    CONNECTED
+  end
+
+  STREAMS_STATUS_MAP = Hash(String, ConnectionStatus).new
+  STREAMS_STATUS_MAP_MUTEX = Mutex.new
 
   class Client
     property client_type : ClientType
@@ -36,7 +45,7 @@ module Turnir::Client
   end
 
   CLIENTS = {
-    ClientType::VK       => Client.new(ClientType::VK, Turnir::Client::VkWebsocket),
+    ClientType::VKVIDEO  => Client.new(ClientType::VKVIDEO, Turnir::Client::VkWebsocket),
     ClientType::TWITCH   => Client.new(ClientType::TWITCH, Turnir::Client::TwitchWebsocket),
     ClientType::NUUM     => Client.new(ClientType::NUUM, Turnir::Client::NuumPolling),
     ClientType::GOODGAME => Client.new(ClientType::GOODGAME, Turnir::Client::GoodgameWebsocket),
@@ -68,6 +77,10 @@ module Turnir::Client
     client.storage.get_messages(channel_internal, since, text_filter)
   end
 
+  def get_connections_statuses
+    STREAMS_STATUS_MAP.map { |k, v| [k.downcase, v.to_s.downcase] }.to_h
+  end
+
   def clear_messages(client_type : ClientType)
     client = CLIENTS[client_type]
     client.storage.clear
@@ -80,6 +93,7 @@ module Turnir::Client
           client.mod.stop
           client.storage.clear
           client.fiber = nil
+          clear_streams_statuses_for_client(client_type)
         end
       end
 
@@ -90,5 +104,27 @@ module Turnir::Client
   def subscribe_to_channel(client_type : ClientType, channel_name : String)
     client = CLIENTS[client_type]
     client.mod.subscribe_to_channel(channel_name)
+  end
+
+  def update_stream_status(stream_name : String, status : ConnectionStatus)
+    current_status = get_stream_status(stream_name)
+    if current_status == status
+      return
+    end
+    STREAMS_STATUS_MAP_MUTEX.synchronize do
+      STREAMS_STATUS_MAP[stream_name] = status
+    end
+  end
+
+  def get_stream_status(stream_name : String) : ConnectionStatus
+    STREAMS_STATUS_MAP.fetch(stream_name, ConnectionStatus::DISCONNECTED)
+  end
+
+  def clear_streams_statuses_for_client(client_type : ClientType)
+    STREAMS_STATUS_MAP_MUTEX.synchronize do
+      STREAMS_STATUS_MAP.reject! do |stream_name, _|
+        stream_name.downcase.starts_with?(client_type.to_s.downcase)
+      end
+    end
   end
 end

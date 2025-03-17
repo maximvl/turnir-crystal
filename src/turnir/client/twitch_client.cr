@@ -12,6 +12,9 @@ module Turnir::Client::TwitchWebsocket
 
   @@message_counter = 0
   @@channels_map = {} of String => String
+  @@reverse_channels_map = {} of String => String
+
+  SERVER_NAME = Turnir::Client::ClientType::TWITCH.to_s.downcase
 
   @@global_badges_map = {} of String => Hash(String, Turnir::Parser::Twitch::BadgeVersion)
   @@channel_badges_map = {} of String => Hash(String, Hash(String, Turnir::Parser::Twitch::BadgeVersion))
@@ -29,6 +32,8 @@ module Turnir::Client::TwitchWebsocket
 
   def start(sync_channel : Channel(Nil), storage : Turnir::ChatStorage::Storage, channels_map : Hash(String, String))
     @@channels_map = channels_map
+    @@reverse_channels_map = @@channels_map.invert
+
     WebsocketMutex.synchronize do
       if @@websocket.nil?
         @@websocket = HTTP::WebSocket.new(
@@ -61,6 +66,7 @@ module Turnir::Client::TwitchWebsocket
 
     websocket.on_close do |code|
       log "Websocket Closed: #{code}"
+      Turnir::Client.clear_streams_statuses_for_client(Turnir::Client::ClientType::TWITCH)
       @@websocket = nil
     end
 
@@ -84,6 +90,7 @@ module Turnir::Client::TwitchWebsocket
 
     internal_channel = "##{channel_name.downcase}"
     @@channels_map[channel_name] = internal_channel
+    @@reverse_channels_map[internal_channel] = channel_name
 
     if @@channel_badges_map.fetch(internal_channel, nil).nil?
       @@channel_badges_map[internal_channel] = fetch_badges(channel_name)
@@ -98,7 +105,18 @@ module Turnir::Client::TwitchWebsocket
   end
 
   def parse_message(msg : String) : Turnir::ChatStorage::Types::ChatMessage | Nil
-    parts = msg.split(" ")
+    parts = msg.split(/\s+/)
+
+    if parts[1] == "JOIN" && parts.size > 2
+      channel_name = @@reverse_channels_map.fetch(parts[2], nil)
+      if channel_name
+        Turnir::Client.update_stream_status(
+          "#{SERVER_NAME}/#{channel_name}",
+          Turnir::Client::ConnectionStatus::CONNECTED,
+        )
+      end
+    end
+
     if parts.size < 4
       return nil
     end
