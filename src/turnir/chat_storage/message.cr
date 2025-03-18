@@ -25,7 +25,8 @@ module Turnir::ChatStorage::Types
 
     def self.from_vk_message(message : Turnir::Parser::Vk::ChatMessage, text : String, mentions : Array(Turnir::Parser::Vk::ContentDataMention))
       data = message.push.pub.data.data
-      created_at = data.createdAt
+      # created_at = data.createdAt
+      created_at = Time.utc.to_unix_ms
       message_id = data.id
 
       author = data.author

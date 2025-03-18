@@ -148,7 +148,7 @@ module Turnir::Client::TwitchWebsocket
       message = message[1..-1]
     end
 
-    ts = Time.utc.to_unix
+    ts = Time.utc.to_unix_ms
 
     @@message_counter += 1
     message_id = @@message_counter
