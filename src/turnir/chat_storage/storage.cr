@@ -8,7 +8,7 @@ module Turnir::ChatStorage
     property storage_mutex : Mutex
     property last_access : Time
 
-    MESSAGES_LIMIT = 2000
+    MESSAGES_LIMIT = 5000
 
     def initialize
       @storage = [] of Turnir::ChatStorage::Types::ChatMessage
@@ -20,7 +20,7 @@ module Turnir::ChatStorage
       @storage_mutex.synchronize do
         @storage << msg
         if @storage.size > MESSAGES_LIMIT
-          @storage.shift
+          @storage.shift 
         end
       end
     end
@@ -42,6 +42,17 @@ module Turnir::ChatStorage
 
     def should_stop?
       @last_access + 30.minutes < Time.utc
+    end
+
+    def get_last_message_ts(channel : String) : Int64
+      @storage_mutex.synchronize do
+        last_message = @storage.reverse.find { |msg| msg.channel == channel }
+        if last_message
+          last_message.ts
+        else
+          0
+        end
+      end
     end
   end
 end

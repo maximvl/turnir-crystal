@@ -14,8 +14,6 @@ module Turnir::Client::TwitchWebsocket
   @@channels_map = {} of String => String
   @@reverse_channels_map = {} of String => String
 
-  SERVER_NAME = Turnir::Client::ClientType::TWITCH.to_s.downcase
-
   @@global_badges_map = {} of String => Hash(String, Turnir::Parser::Twitch::BadgeVersion)
   @@channel_badges_map = {} of String => Hash(String, Hash(String, Turnir::Parser::Twitch::BadgeVersion))
   @@broadcasters_map = {} of String => String
@@ -68,7 +66,7 @@ module Turnir::Client::TwitchWebsocket
 
     websocket.on_close do |code|
       log "Websocket Closed: #{code}"
-      Turnir::Client.disconnect_streams_statuses_for_client(Turnir::Client::ClientType::TWITCH)
+      Turnir::Client.disconnect_streams_for_client(Turnir::Client::ClientType::TWITCH)
       @@websocket = nil
     end
 
@@ -112,9 +110,9 @@ module Turnir::Client::TwitchWebsocket
     if parts[1] == "JOIN" && parts.size > 2
       channel_name = @@reverse_channels_map.fetch(parts[2], nil)
       if channel_name
-        Turnir::Client.update_stream_status(
-          "#{SERVER_NAME}/#{channel_name}",
-          Turnir::Client::ConnectionStatus::CONNECTED,
+        Turnir::Client.on_subscribe(
+          Turnir::Client::ClientType::TWITCH,
+          channel_name,
         )
       end
     end

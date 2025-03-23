@@ -15,8 +15,6 @@ module Turnir::Client::VkWebsocket
   @@websocket : HTTP::WebSocket | Nil = nil
   WebsocketMutex = Mutex.new
 
-  SERVER_NAME = Turnir::Client::ClientType::VKVIDEO.to_s.downcase
-
   @@message_counter = 0
   @@channels_map = {} of String => String
   @@reverse_channels_map = {} of String => String
@@ -66,7 +64,7 @@ module Turnir::Client::VkWebsocket
 
     websocket.on_close do |code|
       log "Websocket Closed: #{code}"
-      Turnir::Client.disconnect_streams_statuses_for_client(Turnir::Client::ClientType::VKVIDEO)
+      Turnir::Client.disconnect_streams_for_client(Turnir::Client::ClientType::VKVIDEO)
       @@websocket = nil
     end
 
@@ -83,9 +81,9 @@ module Turnir::Client::VkWebsocket
       parsed = Turnir::Parser::Vk::AnyMessage.from_json(json_message)
       channel_name = @@reverse_channels_map.fetch(parsed.push.channel, nil)
       if channel_name
-        Turnir::Client.update_stream_status(
-          "#{SERVER_NAME}/#{channel_name}",
-          Turnir::Client::ConnectionStatus::CONNECTED,
+        Turnir::Client.on_subscribe(
+          Turnir::Client::ClientType::VKVIDEO,
+          channel_name,
         )
       end
     rescue ex
