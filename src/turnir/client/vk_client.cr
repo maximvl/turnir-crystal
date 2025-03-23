@@ -66,7 +66,7 @@ module Turnir::Client::VkWebsocket
 
     websocket.on_close do |code|
       log "Websocket Closed: #{code}"
-      Turnir::Client.clear_streams_statuses_for_client(Turnir::Client::ClientType::VKVIDEO)
+      Turnir::Client.disconnect_streams_statuses_for_client(Turnir::Client::ClientType::VKVIDEO)
       @@websocket = nil
     end
 

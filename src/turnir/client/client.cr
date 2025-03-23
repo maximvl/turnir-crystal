@@ -26,7 +26,7 @@ module Turnir::Client
     CONNECTED
   end
 
-  STREAMS_STATUS_MAP = Hash(String, ConnectionStatus).new
+  STREAMS_STATUS_MAP       = Hash(String, ConnectionStatus).new
   STREAMS_STATUS_MAP_MUTEX = Mutex.new
 
   class Client
@@ -53,12 +53,17 @@ module Turnir::Client
 
   def ensure_client_running(client_type : ClientType)
     client = CLIENTS[client_type]
+    client_streams = STREAMS_STATUS_MAP.select { |k, v| k.downcase.starts_with?(client_type.to_s.downcase) }
+    channels = client_streams.keys.map { |k| k.split("/").last }
     client.mutex.synchronize do
       if client.fiber.nil? || client.fiber.try &.dead?
         client.fiber = spawn do
           client.mod.start(client.ready_channel, client.storage, client.channels_map)
         end
         client.ready_channel.receive
+        channels.each do |channel|
+          client.mod.subscribe_to_channel(channel)
+        end
       end
     end
   end
@@ -101,6 +106,16 @@ module Turnir::Client
     end
   end
 
+  def subscribe_to_channel_if_not_subscribed(client_type : ClientType, channel_name : String)
+    client = CLIENTS[client_type]
+    stream = "#{client_type.to_s.downcase}/#{channel_name}"
+    stream_status = get_stream_status(stream)
+
+    if stream_status == ConnectionStatus::DISCONNECTED
+      subscribe_to_channel(client_type, channel_name)
+    end
+  end
+
   def subscribe_to_channel(client_type : ClientType, channel_name : String)
     client = CLIENTS[client_type]
     client.mod.subscribe_to_channel(channel_name)
@@ -120,7 +135,19 @@ module Turnir::Client
     STREAMS_STATUS_MAP.fetch(stream_name, ConnectionStatus::DISCONNECTED)
   end
 
+  def disconnect_streams_statuses_for_client(client_type : ClientType)
+    downcased = client_type.to_s.downcase
+    STREAMS_STATUS_MAP_MUTEX.synchronize do
+      STREAMS_STATUS_MAP.each do |stream_name, _|
+        if stream_name.downcase.starts_with?(downcased)
+          STREAMS_STATUS_MAP[stream_name] = ConnectionStatus::DISCONNECTED
+        end
+      end
+    end
+  end
+
   def clear_streams_statuses_for_client(client_type : ClientType)
+    downcased = client_type.to_s.downcase
     STREAMS_STATUS_MAP_MUTEX.synchronize do
       STREAMS_STATUS_MAP.reject! do |stream_name, _|
         stream_name.downcase.starts_with?(client_type.to_s.downcase)

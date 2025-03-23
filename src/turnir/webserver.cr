@@ -168,7 +168,7 @@ module Turnir::Webserver
     end
 
     Turnir::Client.ensure_client_running(client_type)
-    Turnir::Client.subscribe_to_channel(client_type, channel_name)
+    Turnir::Client.subscribe_to_channel_if_not_subscribed(client_type, channel_name)
 
     context.response.print ({"status" => "ok"}).to_json
   end
@@ -460,6 +460,11 @@ module Turnir::Webserver
         context.response.print "Not Found"
       end
       time_passed = Time.utc - start
+
+      if context.response.status == HTTP::Status::OK && path.ends_with?("/chat_messages")
+        next
+      end
+
       log "< #{context.response.status} (#{time_passed.nanoseconds/100_000}ms)"
     end
 

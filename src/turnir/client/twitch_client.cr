@@ -34,6 +34,8 @@ module Turnir::Client::TwitchWebsocket
     @@channels_map = channels_map
     @@reverse_channels_map = @@channels_map.invert
 
+    log "Starting Twitch client"
+
     WebsocketMutex.synchronize do
       if @@websocket.nil?
         @@websocket = HTTP::WebSocket.new(
@@ -66,7 +68,7 @@ module Turnir::Client::TwitchWebsocket
 
     websocket.on_close do |code|
       log "Websocket Closed: #{code}"
-      Turnir::Client.clear_streams_statuses_for_client(Turnir::Client::ClientType::TWITCH)
+      Turnir::Client.disconnect_streams_statuses_for_client(Turnir::Client::ClientType::TWITCH)
       @@websocket = nil
     end
 
