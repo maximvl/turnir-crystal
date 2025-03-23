@@ -421,12 +421,6 @@ module Turnir::Webserver
       method = context.request.method
       query = context.request.query
 
-      if query
-        log "> #{method} #{path}?#{query}"
-      else
-        log "> #{method} #{path}"
-      end
-
       url_match = URL_MAP.each.find do |pattern, handler|
         path.match(pattern)
       end
@@ -450,9 +444,10 @@ module Turnir::Webserver
           context.response.status = HTTP::Status::INTERNAL_SERVER_ERROR
           context.response.content_type = "text/plain"
           context.response.print "Internal Server Error"
-          log "WebServer Error: "
+          log "WebServer error: "
           log ex
           log ex.backtrace
+          log "for request: "
         end
       else
         context.response.status = HTTP::Status::NOT_FOUND
@@ -465,6 +460,11 @@ module Turnir::Webserver
         next
       end
 
+      if query
+        log "> #{method} #{path}?#{query}"
+      else
+        log "> #{method} #{path}"
+      end
       log "< #{context.response.status} (#{time_passed.nanoseconds/100_000}ms)"
     end
 
