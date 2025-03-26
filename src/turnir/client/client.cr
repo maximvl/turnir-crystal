@@ -69,11 +69,13 @@ module Turnir::Client
     channels = client_streams.values.map { |k| k.channel }
     client.mutex.synchronize do
       if client.fiber.nil? || client.fiber.try &.dead?
+        log "Starting client: #{client_type.to_s}"
         client.fiber = spawn do
           client.mod.start(client.ready_channel, client.storage, client.channels_map)
         end
         client.ready_channel.receive
         channels.each do |channel|
+          log "Re-subscribing #{client_type.to_s} to channel: #{channel}"
           client.mod.subscribe_to_channel(channel)
         end
       end

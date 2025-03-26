@@ -94,7 +94,7 @@ module Turnir::Webserver
     end
 
     platform = query_params.fetch("platform", nil)
-    ts_filter = query_params.fetch("ts", "0").to_i
+    ts_filter = query_params.fetch("ts", "0").to_i64
     text_filter = query_params.fetch("text_filter", "")
 
     items = [] of Turnir::ChatStorage::Types::ChatMessage
