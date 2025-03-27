@@ -90,6 +90,7 @@ module Turnir::Client::VkWebsocket
             Turnir::Client::ClientType::VKVIDEO,
             channel_name,
           )
+          return nil
         end
       end
     rescue ex
@@ -105,6 +106,7 @@ module Turnir::Client::VkWebsocket
           Turnir::Client::ClientType::VKVIDEO,
           channel_name,
         )
+        return nil
       end
     rescue ex
     end

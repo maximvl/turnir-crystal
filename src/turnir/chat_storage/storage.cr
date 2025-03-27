@@ -20,7 +20,7 @@ module Turnir::ChatStorage
       @storage_mutex.synchronize do
         @storage << msg
         if @storage.size > MESSAGES_LIMIT
-          @storage.shift 
+          @storage.shift
         end
       end
     end
