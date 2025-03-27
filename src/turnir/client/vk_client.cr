@@ -18,6 +18,7 @@ module Turnir::Client::VkWebsocket
   @@message_counter = 0
   @@channels_map = {} of String => String
   @@reverse_channels_map = {} of String => String
+  @@subscriptions_map = {} of Int32 => String
 
   def log(msg)
     print "[VkvideoWS] "
@@ -34,6 +35,7 @@ module Turnir::Client::VkWebsocket
     log "Got app config: #{app_config.inspect}"
     @@channels_map = channels_map
     @@reverse_channels_map = channels_map.invert
+    @@subscriptions_map = Hash(Int32, String).new
 
     WebsocketMutex.synchronize do
       if @@websocket.nil?
@@ -78,9 +80,27 @@ module Turnir::Client::VkWebsocket
 
   def parse_message(json_message)
     begin
-      parsed = Turnir::Parser::Vk::AnyMessage.from_json(json_message)
-      channel_name = @@reverse_channels_map.fetch(parsed.push.channel, nil)
+      parsed = Turnir::Parser::Vk::ErrorMessage.from_json(json_message)
+      if parsed.error.code == 105
+        channel_id = @@subscriptions_map.fetch(parsed.id, nil)
+        channel_name = @@reverse_channels_map.fetch(channel_id, nil)
+        if channel_name
+          log "Already subscribed to #{channel_name}"
+          Turnir::Client.on_subscribe(
+            Turnir::Client::ClientType::VKVIDEO,
+            channel_name,
+          )
+        end
+      end
+    rescue ex
+    end
+
+    begin
+      parsed = Turnir::Parser::Vk::SubscriptionMessage.from_json(json_message)
+      channel_id = @@subscriptions_map.fetch(parsed.id, nil)
+      channel_name = @@reverse_channels_map.fetch(channel_id, nil)
       if channel_name
+        log "Subscribed to #{channel_name}"
         Turnir::Client.on_subscribe(
           Turnir::Client::ClientType::VKVIDEO,
           channel_name,
@@ -171,7 +191,10 @@ module Turnir::Client::VkWebsocket
       "subscribe" => {"channel" => channel},
       "id"        => @@message_counter,
     }
-    @@websocket.try { |ws| ws.send(subscribe_message.to_json) }
+    @@websocket.try do |ws|
+      ws.send(subscribe_message.to_json)
+      @@subscriptions_map[@@message_counter] = channel
+    end
   end
 
   def stop

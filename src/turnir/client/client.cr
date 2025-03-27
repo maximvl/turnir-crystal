@@ -133,7 +133,7 @@ module Turnir::Client
     end
   end
 
-  def subscribe_to_channel_if_not_subscribed(client_type : ClientType, channel_name : String)
+  def subscribe_to_channel_if_not_subscribed(client_type : ClientType, channel_name : String) : ConnectionStatus
     client = CLIENTS[client_type]
     stream = "#{client_type.to_s.downcase}/#{channel_name}"
     stream_status = get_stream_status(stream)
@@ -141,6 +141,7 @@ module Turnir::Client
     if stream_status == ConnectionStatus::DISCONNECTED
       subscribe_to_channel(client_type, channel_name)
     end
+    stream_status
   end
 
   def subscribe_to_channel(client_type : ClientType, channel_name : String)

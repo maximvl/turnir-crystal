@@ -168,9 +168,9 @@ module Turnir::Webserver
     end
 
     Turnir::Client.ensure_client_running(client_type)
-    Turnir::Client.subscribe_to_channel_if_not_subscribed(client_type, channel_name)
+    status = Turnir::Client.subscribe_to_channel_if_not_subscribed(client_type, channel_name)
 
-    context.response.print ({"status" => "ok"}).to_json
+    context.response.print ({"stream_status" => status.to_s.downcase}).to_json
   end
 
   def chat_connections(context : HTTP::Server::Context)

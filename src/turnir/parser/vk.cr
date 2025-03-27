@@ -90,4 +90,22 @@ module Turnir::Parser::Vk
     include JSON::Serializable
     property channel : String
   end
+
+  struct ErrorMessage
+    include JSON::Serializable
+    property id : Int32
+    property error : ErrorData
+  end
+
+  struct ErrorData
+    include JSON::Serializable
+    property code : Int32
+    property message : String
+  end
+
+  struct SubscriptionMessage
+    include JSON::Serializable
+    property id : Int32
+    property subscribe : Hash(String, String)
+  end
 end
