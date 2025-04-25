@@ -22,7 +22,7 @@ module Turnir::DbStorage
   def create_tables
     DB.open DB_URL do |db|
       db.exec "create table if not exists presets (id text primary key, title text, owner_id text, created_at integer, updated_at integer, options text)"
-      db.exec "create table if not exists loto_winners (id integer primary key, username text, super_game_status text, created_at integer, stream_channel text)"
+      db.exec "create table if not exists loto_winners (id integer primary key, username text, super_game_status text, created_at integer, stream_channel text, session_id text)"
     end
   end
 
@@ -50,28 +50,64 @@ module Turnir::DbStorage
     property super_game_status : String
     property created_at : Int64
     property stream_channel : String
+    property session_id : String
 
-    def initialize(@id : Int64, @username : String, @super_game_status : String, @created_at : Int64, @stream_channel : String)
+    def initialize(@id : Int64, @username : String, @super_game_status : String, @created_at : Int64, @stream_channel : String, @session_id : String = "")
     end
   end
 
-  def save_loto_winner(username : String, super_game_status : String, created_at : Int64, stream_channel : String) : Int64
+  def save_loto_winner(username : String, super_game_status : String, created_at : Int64, stream_channel : String, session_id : String) : Int64
     DB.open DB_URL do |db|
-      insert_id = db.scalar("insert into loto_winners (username, super_game_status, created_at, stream_channel) values (?, ?, ?, ?) returning id",
-        username, super_game_status, created_at, stream_channel).as(Int64)
-      insert_id
+      # Proper schema verification
+      column_names = [] of String
+      db.query("PRAGMA table_info(loto_winners)") do |rs|
+        rs.each do
+          # Skip first column (cid)
+          rs.read(Int32)  # cid
+          name = rs.read(String)
+          rs.read(String)  # type
+          rs.read(Int32)   # notnull
+          rs.read(String?) # dflt_value
+          rs.read(Int32)   # pk
+          column_names << name
+        end
+      end
+
+      unless column_names.size == 6
+        raise "Table schema mismatch. Found #{column_names.size} columns: #{column_names.inspect}"
+      end
+
+      # Perform the insert
+      db.query_one(
+        <<-SQL,
+        INSERT INTO loto_winners
+          (username, super_game_status, created_at, stream_channel, session_id)
+        VALUES (?, ?, ?, ?, ?)
+        RETURNING id
+        SQL
+        username,
+        super_game_status,
+        created_at,
+        stream_channel,
+        session_id,
+        as: Int64
+      )
+    rescue e : DB::Error
+      raise "Failed to save loto winner: #{e.message}\n" +
+            "Table columns: #{column_names.inspect}\n" +
+            "Values: #{[username, super_game_status, created_at, stream_channel, session_id].inspect}"
     end
   end
 
-  def update_loto_winner_super_game_status(winner_id : Int64, super_game_status : String)
+  def update_loto_winner_super_game_status(winner_id : Int64, super_game_status : String, session_id : String)
     DB.open DB_URL do |db|
-      db.exec("update loto_winners set super_game_status = ? where id = ?", super_game_status, winner_id)
+      db.exec("update loto_winners set super_game_status = ? where id = ? and session_id = +", super_game_status, winner_id, session_id)
     end
   end
 
-  def get_loto_winners(stream_channel : String) : Array(LotoWinner)
+  def get_loto_winners(stream_channel : String, session_id : String) : Array(LotoWinner)
     items = DB.open DB_URL do |db|
-      db.query_all("SELECT id, username, super_game_status, created_at, stream_channel FROM loto_winners WHERE stream_channel = ?", stream_channel) do |rs|
+      db.query_all("SELECT id, username, super_game_status, created_at, stream_channel FROM loto_winners WHERE stream_channel = ? and (session_id = ? or session_id = '')", stream_channel, session_id) do |rs|
         # Map the result set to the expected types
         rs.read(Int32, String, String, Int64, String)
       end

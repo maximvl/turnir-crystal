@@ -66,10 +66,13 @@ module Turnir::Webserver
 
   def get_session_id(context : HTTP::Server::Context)
     cookies = context.request.cookies
+    session_id = ""
     if cookies.has_key?("session_id")
       session_id = cookies["session_id"].value
       # log "Session ID: #{session_id}"
-    else
+    end
+
+    if session_id.empty?
       session_id = gen_random_id
       cookie = HTTP::Cookie.new "session_id", session_id
       context.response.cookies << cookie
@@ -285,7 +288,7 @@ module Turnir::Webserver
   end
 
   def get_or_create_loto_winner(context : HTTP::Server::Context)
-    get_session_id(context)
+    session_id = get_session_id(context)
     if context.request.method == "GET"
       query_params = context.request.query_params
       channel = query_params.fetch("channel", nil)
@@ -297,7 +300,7 @@ module Turnir::Webserver
         return
       end
       stream_channel = "#{server}/#{channel}"
-      winners = DbStorage.get_loto_winners(stream_channel)
+      winners = DbStorage.get_loto_winners(stream_channel, session_id)
       context.response.content_type = "application/json"
       context.response.print ({"winners" => winners}).to_json
     elsif context.request.method == "POST"
@@ -348,6 +351,7 @@ module Turnir::Webserver
           super_game_status: winner.super_game_status,
           created_at: Time.utc.to_unix,
           stream_channel: stream_channel,
+          session_id: session_id,
         )
         inserted_ids[winner.username] = insert_id
       end
@@ -363,7 +367,7 @@ module Turnir::Webserver
     if context.request.method != "POST"
       raise MethodNotSupported.new("Method #{context.request.method} not supported")
     end
-    get_session_id(context)
+    session_id = get_session_id(context)
 
     request = nil
     begin
@@ -404,7 +408,7 @@ module Turnir::Webserver
     winner_id = context.request.path.split('/', remove_empty: true)[-1]
     winner_id_int = winner_id.to_i
 
-    DbStorage.update_loto_winner_super_game_status(winner_id_int, request.super_game_status)
+    DbStorage.update_loto_winner_super_game_status(winner_id_int, request.super_game_status, session_id)
 
     context.response.content_type = "application/json"
     context.response.print ({"status" => "ok"}).to_json
