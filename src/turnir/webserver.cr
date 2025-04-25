@@ -1,4 +1,5 @@
 require "http/server"
+require "http/client"
 require "json"
 require "./client/client"
 require "./config"
@@ -16,10 +17,13 @@ module Turnir::Webserver
     /^\/v2\/turnir-api\/version$/              => ->get_version(HTTP::Server::Context),
     /^\/v2\/turnir-api\/loto_winners$/         => ->get_or_create_loto_winner(HTTP::Server::Context),
     /^\/v2\/turnir-api\/loto_winners\/(.+)$/   => ->update_loto_winner(HTTP::Server::Context),
+    /^\/v2\/turnir-api\/stream_info$/          => ->get_stream_info(HTTP::Server::Context),
   }
 
   class MethodNotSupported < Exception
   end
+
+  VK_ROLES_URL = "https://api.live.vkvideo.ru/v1/channel/{{channel}}/point/reward/"
 
   struct PresetRequest
     include JSON::Serializable
@@ -412,6 +416,39 @@ module Turnir::Webserver
 
     context.response.content_type = "application/json"
     context.response.print ({"status" => "ok"}).to_json
+  end
+
+  def get_stream_info(context : HTTP::Server::Context)
+    if context.request.method != "GET"
+      raise MethodNotSupported.new("Method #{context.request.method} not supported")
+    end
+    get_session_id(context)
+    context.response.content_type = "application/json"
+
+    query_params = context.request.query_params
+    channel = query_params.fetch("channel", nil)
+    if channel.nil?
+      context.response.status = HTTP::Status::BAD_REQUEST
+      context.response.print ({"error" => "channel is required"}).to_json
+      return
+    end
+
+    platform = query_params.fetch("platform", nil)
+    if platform.nil?
+      context.response.status = HTTP::Status::BAD_REQUEST
+      context.response.print ({"error" => "platform is required"}).to_json
+      return
+    end
+
+    if platform == "vkvideo"
+      roles_url = VK_ROLES_URL.sub("{{channel}}", channel)
+      response = HTTP::Client.get(roles_url, headers: HTTP::Headers{"content-type" => "application/json"})
+      roles = JSON.parse(response.body)
+      context.response.print ({"roles" => roles}).to_json
+      return
+    end
+
+    context.response.print ({"error" => "platform not supported"}).to_json
   end
 
   def start
