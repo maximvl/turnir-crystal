@@ -17,4 +17,6 @@ module Turnir::Config
   TWITCH_OAUTH_TOKEN = ENV.fetch("TWITCH_OAUTH", "NO_TOKEN")
   TWITCH_CLIENT_ID   = ENV.fetch("TWITCH_CLIENT_ID", "NO_CLIENT_ID")
   TWITCH_NICK        = ENV.fetch("TWITCH_NICK", "turnir_bot")
+
+  KICK_OAUTH_TOKEN = ENV.fetch("KICK_OAUTH", "NO_TOKEN")
 end

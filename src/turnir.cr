@@ -1,4 +1,4 @@
-require "./turnir/webserver"
+require "./turnir/webserver/endpoints"
 require "./turnir/client/client"
 require "./turnir/db_storage"
 

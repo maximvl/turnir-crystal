@@ -2,6 +2,7 @@ require "./vk_client"
 require "./twitch_client"
 require "./nuum_client"
 require "./goodgame_client"
+require "./kick_client"
 
 module Turnir::Client
   extend self
@@ -11,9 +12,10 @@ module Turnir::Client
     TWITCH
     NUUM
     GOODGAME
+    KICK
   end
 
-  alias ClientModule = Turnir::Client::VkWebsocket | Turnir::Client::TwitchWebsocket | Turnir::Client::NuumPolling | Turnir::Client::GoodgameWebsocket
+  alias ClientModule = Turnir::Client::VkWebsocket | Turnir::Client::TwitchWebsocket | Turnir::Client::NuumPolling | Turnir::Client::GoodgameWebsocket | Turnir::Client::KickClient
 
   def log(msg)
     print "[Client] "
@@ -61,6 +63,7 @@ module Turnir::Client
     ClientType::TWITCH   => Client.new(ClientType::TWITCH, Turnir::Client::TwitchWebsocket),
     ClientType::NUUM     => Client.new(ClientType::NUUM, Turnir::Client::NuumPolling),
     ClientType::GOODGAME => Client.new(ClientType::GOODGAME, Turnir::Client::GoodgameWebsocket),
+    ClientType::KICK     => Client.new(ClientType::KICK, Turnir::Client::KickClient),
   }
 
   def ensure_client_running(client_type : ClientType)

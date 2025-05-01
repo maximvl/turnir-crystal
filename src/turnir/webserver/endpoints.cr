@@ -1,8 +1,10 @@
 require "http/server"
 require "http/client"
 require "json"
-require "./client/client"
-require "./config"
+require "../client/client"
+require "../config"
+require "./serializers"
+require "./utils"
 
 module Turnir::Webserver
   extend self
@@ -18,38 +20,13 @@ module Turnir::Webserver
     /^\/v2\/turnir-api\/loto_winners$/         => ->get_or_create_loto_winner(HTTP::Server::Context),
     /^\/v2\/turnir-api\/loto_winners\/(.+)$/   => ->update_loto_winner(HTTP::Server::Context),
     /^\/v2\/turnir-api\/stream_info$/          => ->get_stream_info(HTTP::Server::Context),
+    /^\/external\/kick-hook$/                  => ->kick_web_hook(HTTP::Server::Context),
   }
 
   class MethodNotSupported < Exception
   end
 
   VK_ROLES_URL = "https://api.live.vkvideo.ru/v1/channel/{{channel}}/point/reward/"
-
-  struct PresetRequest
-    include JSON::Serializable
-    getter title : String
-    getter options : Array(String)
-  end
-
-  struct LotoWinnerCreate
-    include JSON::Serializable
-    getter username : String
-    getter super_game_status : String
-  end
-
-  struct LotoWinnersCreateRequest
-    include JSON::Serializable
-    getter server : String
-    getter channel : String
-    getter winners : Array(LotoWinnerCreate)
-  end
-
-  struct LotoWinnerUpdateRequest
-    include JSON::Serializable
-    getter super_game_status : String
-    getter server : String
-    getter channel : String
-  end
 
   def log(msg)
     print "[WebServer #{Fiber.current}] "
@@ -79,6 +56,7 @@ module Turnir::Webserver
     if session_id.empty?
       session_id = gen_random_id
       cookie = HTTP::Cookie.new "session_id", session_id
+      cookie.max_age = Time::Span.new(days: 400)  # expires in 400 days (in seconds)
       context.response.cookies << cookie
       # log "No session ID"
     end
@@ -94,7 +72,7 @@ module Turnir::Webserver
 
     query_params = context.request.query_params
     channel = query_params.fetch("channel", nil)
-    if channel.nil?
+    if channel.nil? || channel.empty?
       context.response.status = HTTP::Status::BAD_REQUEST
       context.response.print ({"error" => "channel is required"}).to_json
       return
@@ -157,7 +135,7 @@ module Turnir::Webserver
 
     query_params = context.request.query_params
     channel_name = query_params.fetch("channel", nil)
-    if channel_name.nil?
+    if channel_name.nil? || channel_name.empty?
       context.response.status = HTTP::Status::BAD_REQUEST
       context.response.print ({"error" => "channel_name is required"}).to_json
       return
@@ -165,7 +143,7 @@ module Turnir::Webserver
 
     platform = query_params.fetch("platform", nil)
 
-    supported_platforms = ["vkvideo", "twitch", "nuum", "goodgame"]
+    supported_platforms = ["vkvideo", "twitch", "nuum", "goodgame", "kick"]
     client_type = ClientTypes.fetch(platform, nil)
 
     if client_type.nil?
@@ -199,7 +177,7 @@ module Turnir::Webserver
     request = nil
     begin
       context.request.body.try do |data|
-        request = PresetRequest.from_json(data)
+        request = Serializers::PresetRequest.from_json(data)
       end
     rescue
       request = nil
@@ -270,7 +248,7 @@ module Turnir::Webserver
     request = nil
     begin
       context.request.body.try do |data|
-        request = PresetRequest.from_json(data)
+        request = Serializers::PresetRequest.from_json(data)
       end
     rescue
       request = nil
@@ -297,7 +275,7 @@ module Turnir::Webserver
       query_params = context.request.query_params
       channel = query_params.fetch("channel", nil)
       server = query_params.fetch("server", nil)
-      if channel.nil? || server.nil?
+      if channel.nil? || server.nil? || channel.empty? || server.empty?
         context.response.status = HTTP::Status::BAD_REQUEST
         context.response.content_type = "application/json"
         context.response.print ({"error" => "channel, server is required"}).to_json
@@ -311,7 +289,7 @@ module Turnir::Webserver
       request = nil
       begin
         context.request.body.try do |data|
-          request = LotoWinnersCreateRequest.from_json(data)
+          request = Serializers::LotoWinnersCreateRequest.from_json(data)
         end
       rescue
         request = nil
@@ -376,7 +354,7 @@ module Turnir::Webserver
     request = nil
     begin
       context.request.body.try do |data|
-        request = LotoWinnerUpdateRequest.from_json(data)
+        request = Serializers::LotoWinnerUpdateRequest.from_json(data)
       end
     rescue
       request = nil
@@ -427,14 +405,14 @@ module Turnir::Webserver
 
     query_params = context.request.query_params
     channel = query_params.fetch("channel", nil)
-    if channel.nil?
+    if channel.nil? || channel.empty?
       context.response.status = HTTP::Status::BAD_REQUEST
       context.response.print ({"error" => "channel is required"}).to_json
       return
     end
 
     platform = query_params.fetch("platform", nil)
-    if platform.nil?
+    if platform.nil? || platform.empty?
       context.response.status = HTTP::Status::BAD_REQUEST
       context.response.print ({"error" => "platform is required"}).to_json
       return
@@ -449,6 +427,61 @@ module Turnir::Webserver
     end
 
     context.response.print ({"error" => "platform not supported"}).to_json
+  end
+
+  def kick_web_hook(context : HTTP::Server::Context)
+    if context.request.method != "POST"
+      raise MethodNotSupported.new("Method #{context.request.method} not supported")
+    end
+
+    event_type = context.request.headers["Kick-Event-Type"]?
+    if event_type != "chat:read"
+      log "Unsupported KICK event type: #{event_type}"
+      context.response.status = HTTP::Status::OK
+      context.response.content_type = "text/plain"
+      context.response.print "unsupported"
+      return
+    end
+
+    message_id = context.request.headers["Kick-Event-Message-Id"]?
+    message_ts = context.request.headers["Kick-Event-Message-Timestamp"]?
+    kick_signature = context.request.headers["Kick-Event-Signature"]?
+
+    if message_id.nil? || message_ts.nil? || kick_signature.nil?
+      log "Missing KICK headers"
+      context.response.status = HTTP::Status::OK
+      context.response.content_type = "text/plain"
+      context.response.print "missing headers"
+      return
+    end
+
+    body = context.request.body
+
+    signed_data = "#{message_id}.#{message_ts}.#{body}"
+
+    valid_signature = Utils.verify_kick_signature(
+      signed_data,
+      kick_signature,
+    )
+
+    if !valid_signature
+      log "Invalid KICK signature"
+      context.response.status = HTTP::Status::OK
+      context.response.content_type = "text/plain"
+      context.response.print "invalid signature"
+      return
+    end
+
+    begin
+      context.request.body.try do |data|
+        Turnir::Client::KickClient.handle_message(data)
+      end
+    rescue ex : Exception
+      log "Failed to handle kick message: #{ex.inspect}"
+    end
+
+    context.response.content_type = "application/json"
+    context.response.print ({"status" => "ok"}).to_json
   end
 
   def start
