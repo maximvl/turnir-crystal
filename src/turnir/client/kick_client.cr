@@ -15,6 +15,15 @@ module Turnir::Client::KickClient
 
   @@storage : Turnir::ChatStorage::Storage | Nil = nil
   @@channels_map = {} of String => String
+  @@channel_to_broadcaster = {} of String => Int64
+  @@broadcaster_to_channel = {} of Int64 => String
+
+  @@headers = HTTP::Headers{
+    "Authorization" => "Bearer #{Turnir::Config::KICK_OAUTH_TOKEN}",
+    "Content-Type"  => "application/json",
+  }
+
+  @@subscriptions = [] of Turnir::Parser::Kick::SubscriptionData
 
   def start(sync_channel : Channel(Nil), storage : Turnir::ChatStorage::Storage, channels_map : Hash(String, String))
     log "Starting Kick"
@@ -23,6 +32,8 @@ module Turnir::Client::KickClient
     @@channels_map = channels_map
 
     @@stop.set(0)
+
+    refresh_subscriptions()
 
     sync_channel.send(nil)
     loop do
@@ -40,6 +51,8 @@ module Turnir::Client::KickClient
         break
       end
     end
+
+    unsubscribe_from_all_channels
   end
 
   def handle_message(msg : IO)
@@ -49,6 +62,7 @@ module Turnir::Client::KickClient
         # Process the parsed message
         log "Parsed message: #{parsed}"
         msg = Turnir::ChatStorage::Types::ChatMessage.from_kick_message(parsed)
+        @@channels_map[msg.channel] = msg.channel
         @@storage.try { |s|
           s.add_message(msg)
         }
@@ -65,15 +79,25 @@ module Turnir::Client::KickClient
     log "Subscribing to channel: #{channel_name}"
     @@channels_map[channel_name] = channel_name
 
+    channel_id : Int64 | Nil = @@channel_to_broadcaster.fetch(channel_name, nil)
+
+    if channel_id.nil?
+      channel_info = fetch_stream_info(channel_name)
+      if channel_info.nil?
+        log "Failed to get channel info for #{channel_name}"
+        return
+      end
+      channel_id = channel_info.broadcaster_user_id
+      @@channel_to_broadcaster[channel_name] = channel_id
+      @@broadcaster_to_channel[channel_id] = channel_name
+    end
+
     response = HTTP::Client.post("https://api.kick.com/public/v1/events/subscriptions",
-      headers: HTTP::Headers{
-        "Authorization" => "Bearer #{Turnir::Config::KICK_OAUTH_TOKEN}",
-        "Content-Type" => "application/json",
-      },
+      headers: @@headers,
       body: {
-        "broadcaster_user_id": channel_name,
-        "events": [{
-          "name": "chat:read",
+        "broadcaster_user_id": channel_id,
+        "events":              [{
+          "name":    "chat.message.sent",
           "version": 1,
         }],
         "method": "webhook",
@@ -81,12 +105,76 @@ module Turnir::Client::KickClient
     )
     if response.status_code != 200
       log "Failed to subscribe to channel: #{response.status_code} #{response.body}"
+      log "Response: #{response.body}"
       return
     end
+
+    Turnir::Client.on_subscribe(
+      Turnir::Client::ClientType::KICK,
+      channel_name,
+    )
   end
 
   def stop
     @@stop.set(1)
   end
 
+  def refresh_subscriptions
+    response = HTTP::Client.get(
+      "https://api.kick.com/public/v1/events/subscriptions",
+      headers: @@headers
+    )
+    begin
+      parsed = Turnir::Parser::Kick::SubscriptionsResponse.from_json(response.body)
+      @@subscriptions = parsed.data
+
+      @@subscriptions.each do |s|
+        channel = @@broadcaster_to_channel.fetch(s.broadcaster_user_id, nil)
+        if channel
+          Turnir::Client.on_subscribe(
+            Turnir::Client::ClientType::KICK,
+            channel,
+          )
+        end
+      end
+    rescue ex
+      log "Failed to fetch subscriptions: #{ex.inspect}"
+      log "Response: #{response.body}"
+    end
+  end
+
+  def unsubscribe_from_all_channels
+    qs = @@subscriptions.map { |s| "id=#{s.id}" }.join("&")
+    if qs.empty?
+      log "No subscriptions to unsubscribe from"
+      return
+    end
+
+    begin
+      response = HTTP::Client.delete(
+        "https://api.kick.com/public/v1/events/subscriptions?#{qs}",
+        headers: @@headers
+      )
+      if response.status_code != 204
+        log "Failed to unsubscribe from channel: #{response.status_code} #{response.body}"
+      end
+    rescue ex
+      log "Failed to unsubscribe: #{ex.inspect}"
+    end
+  end
+
+  def fetch_stream_info(channel_name : String)
+    response = HTTP::Client.get("https://api.kick.com/public/v1/channels?slug=#{channel_name}", headers: @@headers)
+    begin
+      parsed = Turnir::Parser::Kick::ChannelsResponse.from_json(response.body)
+      if parsed.data.size == 0
+        return nil
+      end
+      parsed.data[0]
+    rescue ex
+      log "Failed to parse stream info: #{ex.inspect}"
+      log "Response: #{response.body}"
+      nil
+    end
+  end
 end

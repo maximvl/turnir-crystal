@@ -43,6 +43,7 @@ module Turnir::Webserver
     "twitch"   => Turnir::Client::ClientType::TWITCH,
     "nuum"     => Turnir::Client::ClientType::NUUM,
     "goodgame" => Turnir::Client::ClientType::GOODGAME,
+    "kick"     => Turnir::Client::ClientType::KICK,
   }
 
   def get_session_id(context : HTTP::Server::Context)
@@ -56,7 +57,7 @@ module Turnir::Webserver
     if session_id.empty?
       session_id = gen_random_id
       cookie = HTTP::Cookie.new "session_id", session_id
-      cookie.max_age = Time::Span.new(days: 400)  # expires in 400 days (in seconds)
+      cookie.max_age = Time::Span.new(days: 400) # expires in 400 days (in seconds)
       context.response.cookies << cookie
       # log "No session ID"
     end
@@ -435,7 +436,7 @@ module Turnir::Webserver
     end
 
     event_type = context.request.headers["Kick-Event-Type"]?
-    if event_type != "chat:read"
+    if event_type != "chat.message.sent"
       log "Unsupported KICK event type: #{event_type}"
       context.response.status = HTTP::Status::OK
       context.response.content_type = "text/plain"

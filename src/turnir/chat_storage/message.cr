@@ -81,7 +81,7 @@ module Turnir::ChatStorage::Types
       channel = message.broadcaster.channel_slug
 
       user = ChatUser.new(id: user_id.to_s, username: username)
-      new(id:message_id, ts: created_at, message: message.content, user: user, channel: channel)
+      new(id: message_id, ts: created_at, message: message.content, user: user, channel: channel)
     end
   end
 end

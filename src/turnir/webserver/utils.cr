@@ -2,7 +2,6 @@ require "openssl"
 require "digest/sha256"
 require "base64"
 
-
 module Turnir::Webserver::Utils
   extend self
 
@@ -18,7 +17,6 @@ twIDAQAB
 -----END PUBLIC KEY-----
 PEM
 
-
   # @@public_key = OpenSSL::PKey::RSA.new(@@KICK_PUBLIC_KEY)
   @@digest = OpenSSL::Digest.new("SHA256")
 
@@ -27,6 +25,6 @@ PEM
     digest = Digest::SHA256.digest(body)
 
     true
-    #@@public_key.verify(@@digest, signature, digest)
+    # @@public_key.verify(@@digest, signature, digest)
   end
 end

@@ -32,4 +32,28 @@ module Turnir::Parser::Kick
     property type : String
     property text : String
   end
+
+  struct SubscriptionsResponse
+    include JSON::Serializable
+    property data : Array(SubscriptionData)
+  end
+
+  struct SubscriptionData
+    include JSON::Serializable
+    property id : String
+    property broadcaster_user_id : Int64
+    property event : String
+  end
+
+  struct ChannelsResponse
+    include JSON::Serializable
+    property data : Array(ChannelData)
+  end
+
+  struct ChannelData
+    include JSON::Serializable
+    property broadcaster_user_id : Int64
+    property slug : String
+    property stream_title : String
+  end
 end

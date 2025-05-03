@@ -63,7 +63,7 @@ module Turnir::DbStorage
       db.query("PRAGMA table_info(loto_winners)") do |rs|
         rs.each do
           # Skip first column (cid)
-          rs.read(Int32)  # cid
+          rs.read(Int32) # cid
           name = rs.read(String)
           rs.read(String)  # type
           rs.read(Int32)   # notnull
