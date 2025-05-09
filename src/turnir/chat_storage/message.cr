@@ -59,9 +59,8 @@ module Turnir::ChatStorage::Types
       new(id: message.id.to_s, ts: created_at, message: text, user: user, channel: channel)
     end
 
-    def self.from_goodgame_message(message : Turnir::Parser::Goodgame::ChatMessage)
-      data = message.data
-      created_at = data.timestamp
+    def self.from_goodgame_message(data : Turnir::Parser::Goodgame::MessageData)
+      created_at = data.timestamp * 1000
       message_id = data.message_id
 
       username = data.user_name

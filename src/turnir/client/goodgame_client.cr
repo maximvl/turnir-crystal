@@ -20,6 +20,16 @@ module Turnir::Client::GoodgameWebsocket
 
   @@channels_map = {} of String => String
 
+  PingMessage = {
+    type: "ping",
+    data: {} of String => String,
+  }.to_json
+
+  PongMessage = {
+    type: "pong",
+    answer: "pong",
+  }.to_json
+
   def log(msg : String)
     print "[GoodgameWS] "
     puts msg
@@ -59,7 +69,7 @@ module Turnir::Client::GoodgameWebsocket
     end
 
     websocket.on_message do |msg|
-      log "WS message: #{msg}"
+      # log "WS message: #{msg}"
       parsed = parse_message(msg)
       if parsed
         storage.add_message(parsed)
@@ -69,6 +79,22 @@ module Turnir::Client::GoodgameWebsocket
     websocket.on_close do |code|
       log "Websocket Closed: #{code}"
       @@websocket = nil
+    end
+
+    spawn do
+      loop do
+        sleep 30.seconds
+        if websocket.closed?
+          log "Websocket closed, exiting..."
+          break
+        end
+        begin
+          websocket.send(PingMessage)
+        rescue e
+          log "Websocket ping error: #{e.inspect}"
+          break
+        end
+      end
     end
 
     ready_channel.send(nil)
@@ -81,15 +107,36 @@ module Turnir::Client::GoodgameWebsocket
   end
 
   def parse_message(msg : String) : Turnir::ChatStorage::Types::ChatMessage | Nil
-    begin
-      parsed = Turnir::Parser::Goodgame::ChatMessage.from_json(msg)
-    rescue e : JSON::Error
-      log "Failed to parse message: #{e}, message: #{msg}"
-    end
-    if parsed.nil?
+    if msg == PongMessage
       return nil
     end
-    Turnir::ChatStorage::Types::ChatMessage.from_goodgame_message(parsed)
+
+    begin
+      chat_event = Turnir::Parser::Goodgame::ChatEvent.from_json(msg)
+    rescue e : JSON::Error
+      log "Failed to parse message: #{e}, message: #{msg}"
+      return nil
+    end
+
+    if chat_event.type == "success_join"
+      begin
+        join_msg = Turnir::Parser::Goodgame::JoinData.from_json(chat_event.data.to_json)
+        Turnir::Client.on_subscribe(Turnir::Client::ClientType::GOODGAME, join_msg.channel_key)
+      rescue e : JSON::Error
+        log "Failed to parse join message: #{e}, message: #{msg}"
+        return nil
+      end
+    end
+
+    if chat_event.type == "message"
+      begin
+        msg = Turnir::Parser::Goodgame::MessageData.from_json(chat_event.data.to_json)
+      rescue e : JSON::Error
+        log "Failed to parse chat message: #{e}, message: #{msg}"
+        return nil
+      end
+      return Turnir::ChatStorage::Types::ChatMessage.from_goodgame_message(msg)
+    end
   end
 
   def subscribe_to_channel(channel_name : String)

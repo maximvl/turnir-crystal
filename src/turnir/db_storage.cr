@@ -101,7 +101,7 @@ module Turnir::DbStorage
 
   def update_loto_winner_super_game_status(winner_id : Int64, super_game_status : String, session_id : String)
     DB.open DB_URL do |db|
-      db.exec("update loto_winners set super_game_status = ? where id = ? and session_id = +", super_game_status, winner_id, session_id)
+      db.exec("update loto_winners set super_game_status = ? where id = ? and session_id = ?", super_game_status, winner_id, session_id)
     end
   end
 
