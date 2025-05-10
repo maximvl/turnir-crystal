@@ -103,6 +103,10 @@ module Turnir::Client
     STREAMS_STATUS_MAP.map { |k, v| [k.downcase, v.status.to_s.downcase] }.to_h
   end
 
+  def get_clients_last_access
+    CLIENTS.map { |client_type, client| [client_type.to_s.downcase, client.storage.last_access.to_s] }.to_h
+  end
+
   def clear_messages(client_type : ClientType)
     client = CLIENTS[client_type]
     client.storage.clear
@@ -111,7 +115,9 @@ module Turnir::Client
   def client_auto_stopper
     loop do
       CLIENTS.each do |client_type, client|
+        # log "Checking client: #{client_type.to_s}, #{client.storage.last_access.to_s}"
         if client.storage.should_stop?
+          log "Stopping client: #{client_type.to_s}"
           client.mod.stop
           client.storage.clear
           client.fiber = nil

@@ -20,7 +20,7 @@ module Turnir::Client::NuumPolling
   EVENTS_URL = "https://nuum.ru/api/v3/events/{{chat_id}}/events"
 
   @@storage : Turnir::ChatStorage::Storage | Nil = nil
-  @@stop_channel = Channel(Int32).new(0)
+  @@stop_flag = Atomic(Int32).new(0)
 
   SUBSCRIBED_CHATS = Set(String).new
 
@@ -43,12 +43,12 @@ module Turnir::Client::NuumPolling
         fetch_events(chat)
       end
 
-      select
-      when @@stop_channel.receive?
+      if @@stop_flag.get == 1
+        log "Stopping Nuum client"
         break
-      else
-        sleep 2.seconds
       end
+
+      sleep 2.seconds
     end
   end
 
@@ -126,7 +126,7 @@ module Turnir::Client::NuumPolling
 
   def stop
     SUBSCRIBED_CHATS.clear
-    @@stop_channel.send(1)
+    @@stop_flag.set(1)
     LAST_TS_PER_CHAT.clear
   end
 end

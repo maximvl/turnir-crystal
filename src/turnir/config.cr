@@ -19,4 +19,6 @@ module Turnir::Config
   TWITCH_NICK        = ENV.fetch("TWITCH_NICK", "turnir_bot")
 
   KICK_OAUTH_TOKEN = ENV.fetch("KICK_OAUTH", "NO_TOKEN")
+
+  INACTIVE_TIMEOUT_MINS = ENV.fetch("INACTIVE_TIMEOUT_MINS", "30").to_i
 end

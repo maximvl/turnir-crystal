@@ -166,7 +166,7 @@ module Turnir::Webserver
     get_session_id(context)
 
     context.response.content_type = "application/json"
-    context.response.print ({"connections" => Turnir::Client.get_connections_statuses}).to_json
+    context.response.print ({"connections" => Turnir::Client.get_connections_statuses, "last_access" => Turnir::Client.get_clients_last_access}).to_json
   end
 
   def save_preset(context : HTTP::Server::Context)
@@ -531,8 +531,16 @@ module Turnir::Webserver
       end
       time_passed = Time.utc - start
 
-      if context.response.status == HTTP::Status::OK && path.ends_with?("/chat_messages")
-        next
+      if context.response.status == HTTP::Status::OK
+        if path.ends_with?("/chat_messages")
+          next
+        end
+        if path.ends_with?("/loto_winners")
+          next
+        end
+        if path.ends_with?("/stream_info")
+          next
+        end
       end
 
       if query

@@ -41,7 +41,7 @@ module Turnir::ChatStorage
     end
 
     def should_stop?
-      @last_access + 30.minutes < Time.utc
+      (@last_access + Turnir::Config::INACTIVE_TIMEOUT_MINS.minutes) < Time.utc
     end
 
     def get_last_message_ts(channel : String) : Int64
