@@ -14,9 +14,4 @@ spawn do
   Turnir::Client.client_auto_stopper
 end
 
-# spawn do
-#  Turnir.ensure_twitch_websocket_running
-#  Turnir::WSClient::TwitchClient.subscribe_to_channel("roadhouse")
-# end
-
 Turnir::Webserver.start
