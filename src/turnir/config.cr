@@ -19,6 +19,8 @@ module Turnir::Config
   TWITCH_NICK        = ENV.fetch("TWITCH_NICK", "turnir_bot")
 
   KICK_OAUTH_TOKEN = ENV.fetch("KICK_OAUTH", "NO_TOKEN")
+  YOUTUBE_API_KEY = ENV.fetch("YOUTUBE_API_KEY", "NO_API_KEY")
+  YOUTUBE_POLL_SECS = ENV.fetch("YOUTUBE_POLL_SECS", "2").to_f
 
-  INACTIVE_TIMEOUT_MINS = ENV.fetch("INACTIVE_TIMEOUT_MINS", "30").to_i
+  INACTIVE_TIMEOUT_MINS = ENV.fetch("INACTIVE_TIMEOUT_MINS", "30").to_f
 end

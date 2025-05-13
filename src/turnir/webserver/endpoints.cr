@@ -44,6 +44,7 @@ module Turnir::Webserver
     "nuum"     => Turnir::Client::ClientType::NUUM,
     "goodgame" => Turnir::Client::ClientType::GOODGAME,
     "kick"     => Turnir::Client::ClientType::KICK,
+    "youtube"  => Turnir::Client::ClientType::YOUTUBE,
   }
 
   def get_session_id(context : HTTP::Server::Context)
@@ -143,8 +144,6 @@ module Turnir::Webserver
     end
 
     platform = query_params.fetch("platform", nil)
-
-    supported_platforms = ["vkvideo", "twitch", "nuum", "goodgame", "kick"]
     client_type = ClientTypes.fetch(platform, nil)
 
     if client_type.nil?

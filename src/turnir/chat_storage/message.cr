@@ -82,5 +82,21 @@ module Turnir::ChatStorage::Types
       user = ChatUser.new(id: user_id.to_s, username: username)
       new(id: message_id, ts: created_at, message: message.content, user: user, channel: channel)
     end
+
+    def self.from_youtube_message(message : Turnir::Parser::Youtube::ChatItem, channel : String)
+      # created_at = Time.utc.to_unix_ms
+      message_id = message.id
+
+      username = message.authorDetails.displayName
+      user_id = message.authorDetails.channelId
+
+
+      created_at_string = message.snippet.publishedAt
+      created_at = Time.parse(created_at_string, "%Y-%m-%dT%H:%M:%S.%6N%z", Time::Location::UTC).to_unix_ms
+
+      user = ChatUser.new(id: user_id.to_s, username: username)
+      text = message.snippet.displayMessage
+      new(id: message_id, ts: created_at, message: text, user: user, channel: channel)
+    end
   end
 end
