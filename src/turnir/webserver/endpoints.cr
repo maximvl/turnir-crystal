@@ -455,7 +455,17 @@ module Turnir::Webserver
       return
     end
 
-    body = context.request.body
+    body = context.request.body.try do |data|
+      data.gets_to_end
+    end
+
+    if body.nil?
+      log "Missing KICK body"
+      context.response.status = HTTP::Status::OK
+      context.response.content_type = "text/plain"
+      context.response.print "missing body"
+      return
+    end
 
     signed_data = "#{message_id}.#{message_ts}.#{body}"
 
@@ -465,7 +475,6 @@ module Turnir::Webserver
     )
 
     if !valid_signature
-      log "Invalid KICK signature"
       context.response.status = HTTP::Status::OK
       context.response.content_type = "text/plain"
       context.response.print "invalid signature"
@@ -473,9 +482,7 @@ module Turnir::Webserver
     end
 
     begin
-      context.request.body.try do |data|
-        Turnir::Client::KickClient.handle_message(data)
-      end
+      Turnir::Client::KickClient.handle_message(body)
     rescue ex : Exception
       log "Failed to handle kick message: #{ex.inspect}"
     end

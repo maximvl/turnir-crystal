@@ -120,7 +120,9 @@ module Turnir::Client
       CLIENTS.each do |client_type, client|
         # log "Checking client: #{client_type.to_s}, #{client.storage.last_access.to_s}"
         if client.storage.should_stop?
-          log "Stopping client: #{client_type.to_s}"
+          if client.fiber && !client.fiber.try &.dead?
+            log "Stopping client: #{client_type.to_s}"
+          end
           client.mod.stop
           client.storage.clear
           client.fiber = nil

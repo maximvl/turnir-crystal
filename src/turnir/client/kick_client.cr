@@ -55,7 +55,7 @@ module Turnir::Client::KickClient
     unsubscribe_from_all_channels
   end
 
-  def handle_message(msg : IO)
+  def handle_message(msg : String)
     begin
       parsed = Turnir::Parser::Kick::ChatMessage.from_json(msg)
       if parsed

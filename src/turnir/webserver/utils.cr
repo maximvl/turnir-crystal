@@ -1,11 +1,10 @@
-require "openssl"
-require "digest/sha256"
 require "base64"
+require "process"
 
 module Turnir::Webserver::Utils
   extend self
 
-  @@KICK_PUBLIC_KEY = <<-PEM
+  KICK_PUBLIC_KEY = <<-PEM
 -----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAq/+l1WnlRrGSolDMA+A8
 6rAhMbQGmQ2SapVcGM3zq8ANXjnhDWocMqfWcTd95btDydITa10kDvHzw9WQOqp2
@@ -17,14 +16,36 @@ twIDAQAB
 -----END PUBLIC KEY-----
 PEM
 
-  # @@public_key = OpenSSL::PKey::RSA.new(@@KICK_PUBLIC_KEY)
-  @@digest = OpenSSL::Digest.new("SHA256")
+  def log(msg : String)
+    print "[Kick Signature] "
+    puts msg
+  end
 
-  def verify_kick_signature(body, kick_signature) : Bool
-    signature = Base64.decode_string(kick_signature)
-    digest = Digest::SHA256.digest(body)
+  def verify_kick_signature(message : String, kick_signature : String) : Bool
+    escaped_signed_message = message.gsub("'", "'\\''")
+    escaped_signature_b64 = kick_signature.gsub("'", "'\\''")
 
-    true
-    # @@public_key.verify(@@digest, signature, digest)
+    # Build the shell command
+    command = <<-CMD
+      openssl dgst -sha256 -verify <(echo '#{KICK_PUBLIC_KEY}') \\
+        -signature <(echo '#{escaped_signature_b64}' | base64 -d) \\
+        <(echo -n '#{escaped_signed_message}')
+    CMD
+
+    output = IO::Memory.new
+    status = Process.run("bash", args: ["-c", command], output: output, shell: true)
+    output_s = output.to_s
+
+    # Check the result
+    if status.success? && output_s.includes?("Verified OK")
+      # log "Signature is valid."
+      true
+    else
+      log "Signature verification failed:"
+      log "Msg: #{message}"
+      log "Signature: #{kick_signature}"
+      log "Output: #{output_s}"
+      false
+    end
   end
 end

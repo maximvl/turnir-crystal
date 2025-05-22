@@ -14,6 +14,7 @@ module Turnir::Client::YoutubeClient
   end
 
   @@channels_map = {} of String => String
+  @@out_of_credits = Atomic(Int32).new(0)
 
   def start(sync_channel : Channel(Nil), storage : Turnir::ChatStorage::Storage, channels_map : Hash(String, String))
     log "Starting Youtube polling"
@@ -49,6 +50,9 @@ module Turnir::Client::YoutubeClient
         response = fetch_chat_messages(chat_id, next_page_token)
         if response.nil?
           log "Failed to fetch chat messages for channel: #{channel_name}"
+          if @@out_of_credits.get == 1
+            sleep 10.minutes
+          end
           next
         end
         next_page_token = response.nextPageToken
@@ -75,6 +79,11 @@ module Turnir::Client::YoutubeClient
   def subscribe_to_channel(channel_name : String)
     if @@channels_map.has_key?(channel_name)
       log "Already subscribed to channel: #{channel_name}"
+      return
+    end
+
+    if @@out_of_credits.get == 1
+      log "Out of credits, cannot subscribe to channel: #{channel_name}"
       return
     end
 
@@ -125,8 +134,8 @@ module Turnir::Client::YoutubeClient
         return nil
       end
     elsif response.status_code == 403
-      log "Access denied to live video: #{response.status_code} #{response.body}"
-      stop
+      # log "Access denied to live video: #{response.status_code} #{response.body}"
+      @@out_of_credits.set(1)
       return nil
     else
       log "Failed to fetch live video ID: #{response.status_code} #{response.body}"
@@ -159,6 +168,10 @@ module Turnir::Client::YoutubeClient
         log "Failed to parse response: #{ex.inspect} #{response.body}"
         return nil
       end
+    elsif response.status_code == 403
+      # log "Access denied to live chat: #{response.status_code} #{response.body}"
+      @@out_of_credits.set(1)
+      return nil
     else
       log "Failed to fetch live chat ID: #{response.status_code} #{response.body}"
       return nil
@@ -181,6 +194,7 @@ module Turnir::Client::YoutubeClient
       uri.to_s,
     )
     if response.status_code == 200
+      @@out_of_credits.set(0)
       begin
         parsed = Turnir::Parser::Youtube::ChatResponse.from_json(response.body)
         return parsed
@@ -189,8 +203,8 @@ module Turnir::Client::YoutubeClient
         return nil
       end
     elsif response.status_code == 403
-      log "Access denied to chat messages: #{response.status_code} #{response.body}"
-      stop
+      # log "Access denied to chat messages: #{response.status_code} #{response.body}"
+      @@out_of_credits.set(1)
       return nil
     else
       log "Failed to fetch chat messages: #{response.status_code} #{response.body}"
