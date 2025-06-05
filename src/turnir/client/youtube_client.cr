@@ -8,6 +8,13 @@ module Turnir::Client::YoutubeClient
 
   @@stop_flag = Atomic(Int32).new(0)
 
+  struct ChannelConfig
+    property next_page_token : String | Nil = nil
+    property polling_timeout : Float64 = Turnir::Config::YOUTUBE_POLL_SECS
+  end
+
+  @@channels_config = {} of String => ChannelConfig
+
   def log(msg)
     print "[YT] "
     puts msg
@@ -26,13 +33,10 @@ module Turnir::Client::YoutubeClient
 
     processed_messages_ids = Set(String).new
 
-    next_page_token = nil
-    polling_timeout = Turnir::Config::YOUTUBE_POLL_SECS
-
     sync_channel.send(nil)
     loop do
       # Simulate some work
-      sleep Math.max(Turnir::Config::YOUTUBE_POLL_SECS, polling_timeout).seconds
+      sleep Turnir::Config::YOUTUBE_POLL_SECS.seconds
 
       # Check if the sync_channel is closed
       if sync_channel.closed?
@@ -47,16 +51,25 @@ module Turnir::Client::YoutubeClient
 
       @@channels_map.each do |channel_name, chat_id|
         # log "Fetching chat messages for channel: #{channel_name}"
+        channel_config = @@channels_config[channel_name] || ChannelConfig.new
+        next_page_token = channel_config.next_page_token
+        polling_timeout = channel_config.polling_timeout
+
         response = fetch_chat_messages(chat_id, next_page_token)
         if response.nil?
           log "Failed to fetch chat messages for channel: #{channel_name}"
           if @@out_of_credits.get == 1
+            log "Out of credits, stopping polling 10 mins"
             sleep 10.minutes
           end
           next
         end
-        next_page_token = response.nextPageToken
-        polling_timeout = response.pollingIntervalMillis / 1000
+        channel_config.next_page_token = response.nextPageToken
+        channel_config.polling_timeout = response.pollingIntervalMillis / 1000
+        if @@channels_config[channel_name].nil?
+          @@channels_config[channel_name] = channel_config
+        end
+
         response.items.each do |message|
           if processed_messages_ids.includes?(message.id)
             next
