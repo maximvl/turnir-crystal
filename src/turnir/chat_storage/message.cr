@@ -90,7 +90,6 @@ module Turnir::ChatStorage::Types
       username = message.authorDetails.displayName
       user_id = message.authorDetails.channelId
 
-
       created_at_string = message.snippet.publishedAt
       created_at = Time.parse(created_at_string, "%Y-%m-%dT%H:%M:%S.%6N%z", Time::Location::UTC).to_unix_ms
 

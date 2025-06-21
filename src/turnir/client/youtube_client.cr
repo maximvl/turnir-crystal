@@ -122,11 +122,11 @@ module Turnir::Client::YoutubeClient
   def fetch_live_video_id(channel_name : String) : String | Nil
     log "Fetching live video ID for channel: #{channel_name}"
     params = {
-      "part" => "snippet",
+      "part"      => "snippet",
       "eventType" => "live",
-      "type" => "video",
-      "q" => channel_name,
-      "key" => Turnir::Config::YOUTUBE_API_KEY,
+      "type"      => "video",
+      "q"         => channel_name,
+      "key"       => Turnir::Config::YOUTUBE_API_KEY,
     }
     uri = URI.parse("https://www.googleapis.com/youtube/v3/search")
     uri.query = URI::Params.encode(params)
@@ -160,8 +160,8 @@ module Turnir::Client::YoutubeClient
     log "Fetching live chat ID for video: #{video_id}"
     params = {
       "part" => "liveStreamingDetails",
-      "id" => video_id,
-      "key" => Turnir::Config::YOUTUBE_API_KEY,
+      "id"   => video_id,
+      "key"  => Turnir::Config::YOUTUBE_API_KEY,
     }
     uri = URI.parse("https://www.googleapis.com/youtube/v3/videos")
     uri.query = URI::Params.encode(params)
@@ -194,9 +194,9 @@ module Turnir::Client::YoutubeClient
   def fetch_chat_messages(chat_id : String, page_token : String | Nil = nil)
     # log "Fetching chat messages for chat ID: #{chat_id}"
     params = {
-      "part" => "snippet,authorDetails",
+      "part"       => "snippet,authorDetails",
       "liveChatId" => chat_id,
-      "key" => Turnir::Config::YOUTUBE_API_KEY,
+      "key"        => Turnir::Config::YOUTUBE_API_KEY,
     }
     if page_token
       params["pageToken"] = page_token

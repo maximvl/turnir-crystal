@@ -26,7 +26,7 @@ module Turnir::Client::GoodgameWebsocket
   }.to_json
 
   PongMessage = {
-    type: "pong",
+    type:   "pong",
     answer: "pong",
   }.to_json
 

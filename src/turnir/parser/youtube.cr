@@ -1,7 +1,6 @@
 require "json"
 
 module Turnir::Parser::Youtube
-
   struct SearchResponse
     include JSON::Serializable
     property items : Array(SearchResponseItem)
