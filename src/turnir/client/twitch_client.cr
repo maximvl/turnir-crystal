@@ -20,7 +20,7 @@ module Turnir::Client::TwitchWebsocket
 
   Headers = HTTP::Headers{
     "Client-ID"     => Turnir::Config::TWITCH_CLIENT_ID,
-    "Authorization" => "Bearer #{Turnir::Config::TWITCH_OAUTH_TOKEN}",
+    "Authorization" => "Bearer #{Turnir::Config.get_twitch_token}",
   }
 
   def log(msg)
@@ -73,7 +73,7 @@ module Turnir::Client::TwitchWebsocket
     @@global_badges_map = fetch_badges()
     log "Global badges fetched: #{@@global_badges_map.size}"
 
-    websocket.send("PASS oauth:#{Turnir::Config::TWITCH_OAUTH_TOKEN}")
+    websocket.send("PASS oauth:#{Turnir::Config.get_twitch_token}")
     websocket.send("NICK #{Turnir::Config::TWITCH_NICK}")
     websocket.send("CAP REQ :twitch.tv/tags")
     sync_channel.send(nil)

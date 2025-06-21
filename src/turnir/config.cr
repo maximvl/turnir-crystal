@@ -18,9 +18,20 @@ module Turnir::Config
   TWITCH_CLIENT_ID   = ENV.fetch("TWITCH_CLIENT_ID", "NO_CLIENT_ID")
   TWITCH_NICK        = ENV.fetch("TWITCH_NICK", "turnir_bot")
 
-  KICK_OAUTH_TOKEN = ENV.fetch("KICK_OAUTH", "NO_TOKEN")
-  YOUTUBE_API_KEY = ENV.fetch("YOUTUBE_API_KEY", "NO_API_KEY")
+  TWITCH_CLIENT_SECRET = ENV.fetch("TWITCH_CLIENT_SECRET", "NO_CLIENT_SECRET")
+  @@twitch_access_token : String = ""
+
+  KICK_OAUTH_TOKEN  = ENV.fetch("KICK_OAUTH", "NO_TOKEN")
+  YOUTUBE_API_KEY   = ENV.fetch("YOUTUBE_API_KEY", "NO_API_KEY")
   YOUTUBE_POLL_SECS = ENV.fetch("YOUTUBE_POLL_SECS", "10").to_f
 
   INACTIVE_TIMEOUT_MINS = ENV.fetch("INACTIVE_TIMEOUT_MINS", "30").to_f
+
+  def get_twitch_token
+    @@twitch_access_token
+  end
+
+  def set_twitch_token(token : String)
+    @@twitch_access_token = token
+  end
 end
