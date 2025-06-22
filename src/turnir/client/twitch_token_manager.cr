@@ -68,6 +68,11 @@ module Turnir::Client::TwitchTokenManager
       return nil
     end
 
+    if Turnir::Config.get_twitch_token != token_response.access_token
+      Turnir::Config.set_twitch_token(token_response.access_token)
+      log "Token updated"
+    end
+
     if (Time.utc.to_unix + REFRESH_WINDOW) > (token_response.created_at + token_response.expires_in)
       new_token_response = do_refresh_query(token_response.refresh_token)
       if new_token_response.nil?

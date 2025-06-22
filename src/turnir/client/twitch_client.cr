@@ -18,11 +18,6 @@ module Turnir::Client::TwitchWebsocket
   @@channel_badges_map = {} of String => Hash(String, Hash(String, Turnir::Parser::Twitch::BadgeVersion))
   @@broadcasters_map = {} of String => String
 
-  Headers = HTTP::Headers{
-    "Client-ID"     => Turnir::Config::TWITCH_CLIENT_ID,
-    "Authorization" => "Bearer #{Turnir::Config.get_twitch_token}",
-  }
-
   def log(msg)
     print "[TwitchWS] "
     puts msg
@@ -235,7 +230,7 @@ module Turnir::Client::TwitchWebsocket
   end
 
   def fetch_broadcaster_id(channel_name : String) : String | Nil
-    response = HTTP::Client.get("https://api.twitch.tv/helix/users?login=#{channel_name}", headers: Headers)
+    response = HTTP::Client.get("https://api.twitch.tv/helix/users?login=#{channel_name}", headers: auth_headers)
     begin
       parsed = Turnir::Parser::Twitch::BroadcasterResponse.from_json(response.body)
       if parsed.data.size == 0
@@ -259,7 +254,7 @@ module Turnir::Client::TwitchWebsocket
       end
     end
 
-    response = HTTP::Client.get(url, headers: Headers)
+    response = HTTP::Client.get(url, headers: auth_headers)
 
     begin
       parsed = Turnir::Parser::Twitch::BadgesResponse.from_json(response.body)
@@ -273,5 +268,12 @@ module Turnir::Client::TwitchWebsocket
       log "Failed to parse global badges: #{ex.inspect} #{response.body.inspect}"
     end
     result
+  end
+
+  def auth_headers : HTTP::Headers
+    HTTP::Headers{
+      "Client-ID"     => Turnir::Config::TWITCH_CLIENT_ID,
+      "Authorization" => "Bearer #{Turnir::Config.get_twitch_token}",
+    }
   end
 end
