@@ -8,6 +8,8 @@ module Turnir::Client::YoutubeClient
 
   @@stop_flag = Atomic(Int32).new(0)
 
+  @@last_attempt_at = Time.utc
+
   struct ChannelConfig
     property next_page_token : String | Nil = nil
     property polling_timeout : Float64 = Turnir::Config::YOUTUBE_POLL_SECS
@@ -96,7 +98,10 @@ module Turnir::Client::YoutubeClient
     end
 
     if @@out_of_credits.get == 1
-      log "Out of credits, cannot subscribe to channel: #{channel_name}"
+      if (Time.utc - @@last_attempt_at) > 5.minutes
+        log "Out of credits, cannot subscribe to channel: #{channel_name}"
+        @@last_attempt_at = Time.utc
+      end
       return
     end
 
