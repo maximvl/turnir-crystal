@@ -501,6 +501,7 @@ module Turnir::Webserver
       path = context.request.path
       method = context.request.method
       query = context.request.query
+      response = context.response
 
       url_match = URL_MAP.each.find do |pattern, handler|
         path.match(pattern)
@@ -550,9 +551,9 @@ module Turnir::Webserver
       end
 
       if query
-        log "> #{method} #{path}?#{query}"
+        log "> #{method} #{path}?#{query} : #{response}"
       else
-        log "> #{method} #{path}"
+        log "> #{method} #{path} : #{response}"
       end
       log "< #{context.response.status} (#{time_passed.nanoseconds/100_000}ms)"
     end
