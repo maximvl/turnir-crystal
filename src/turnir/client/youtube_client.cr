@@ -37,7 +37,6 @@ module Turnir::Client::YoutubeClient
 
     sync_channel.send(nil)
     loop do
-      # Simulate some work
       sleep Turnir::Config::YOUTUBE_POLL_SECS.seconds
 
       # Check if the sync_channel is closed

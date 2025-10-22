@@ -51,12 +51,13 @@ module Turnir::Client
     property fiber : Fiber | Nil = nil
     property ready_channel = Channel(Nil).new(0)
     property mutex = Mutex.new
-    property storage = Turnir::ChatStorage::Storage.new
+    property storage : Turnir::ChatStorage::Storage
     property channels_map = {} of String => String
 
-    def initialize(client_type : ClientType, mod : ClientModule)
+    def initialize(client_type : ClientType, mod : ClientModule, stop_timeout : Time::Span | Nil = nil)
       @client_type = client_type
       @mod = mod
+      @storage = Turnir::ChatStorage::Storage.new(stop_timeout)
     end
   end
 
@@ -66,7 +67,7 @@ module Turnir::Client
     ClientType::NUUM     => Client.new(ClientType::NUUM, Turnir::Client::NuumPolling),
     ClientType::GOODGAME => Client.new(ClientType::GOODGAME, Turnir::Client::GoodgameWebsocket),
     ClientType::KICK     => Client.new(ClientType::KICK, Turnir::Client::KickClient),
-    ClientType::YOUTUBE  => Client.new(ClientType::YOUTUBE, Turnir::Client::YoutubeClient),
+    ClientType::YOUTUBE  => Client.new(ClientType::YOUTUBE, Turnir::Client::YoutubeClient, Turnir::Config::YOUTUBE_INACTIVE_TIMEOUT_MINS.minutes),
   }
 
   def ensure_client_running(client_type : ClientType)
