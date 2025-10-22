@@ -1,9 +1,7 @@
 require "./vk_client"
 require "./twitch_client"
-require "./nuum_client"
 require "./goodgame_client"
 require "./kick_client"
-require "./youtube_client"
 
 module Turnir::Client
   extend self
@@ -11,13 +9,11 @@ module Turnir::Client
   enum ClientType
     VKVIDEO
     TWITCH
-    NUUM
     GOODGAME
     KICK
-    YOUTUBE
   end
 
-  alias ClientModule = Turnir::Client::VkWebsocket | Turnir::Client::TwitchWebsocket | Turnir::Client::NuumPolling | Turnir::Client::GoodgameWebsocket | Turnir::Client::KickClient | Turnir::Client::YoutubeClient
+  alias ClientModule = Turnir::Client::VkWebsocket | Turnir::Client::TwitchWebsocket | Turnir::Client::GoodgameWebsocket | Turnir::Client::KickClient
 
   def log(msg)
     print "[Client] "
@@ -64,10 +60,8 @@ module Turnir::Client
   CLIENTS = {
     ClientType::VKVIDEO  => Client.new(ClientType::VKVIDEO, Turnir::Client::VkWebsocket),
     ClientType::TWITCH   => Client.new(ClientType::TWITCH, Turnir::Client::TwitchWebsocket),
-    ClientType::NUUM     => Client.new(ClientType::NUUM, Turnir::Client::NuumPolling),
     ClientType::GOODGAME => Client.new(ClientType::GOODGAME, Turnir::Client::GoodgameWebsocket),
     ClientType::KICK     => Client.new(ClientType::KICK, Turnir::Client::KickClient),
-    ClientType::YOUTUBE  => Client.new(ClientType::YOUTUBE, Turnir::Client::YoutubeClient, Turnir::Config::YOUTUBE_INACTIVE_TIMEOUT_MINS.minutes),
   }
 
   def ensure_client_running(client_type : ClientType)
