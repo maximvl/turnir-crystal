@@ -18,6 +18,14 @@ module Turnir::Config
     ENV.fetch("PORT", "8080").to_i
   end
 
+  def initial_channels
+    ENV.fetch("INITIAL_CHANNELS", "").split(",").map(&.strip).reject(&.empty?)
+  end
+
+  def client_restarter_interval_seconds
+    ENV.fetch("CLIENT_RESTARTER_INTERVAL_SECONDS", "180").to_i
+  end
+
   TWITCH_OAUTH_TOKEN = ENV.fetch("TWITCH_OAUTH", "NO_TOKEN")
   TWITCH_CLIENT_ID   = ENV.fetch("TWITCH_CLIENT_ID", "NO_CLIENT_ID")
   TWITCH_NICK        = ENV.fetch("TWITCH_NICK", "turnir_bot")
