@@ -53,5 +53,11 @@ module Turnir::ChatStorage
         end
       end
     end
+
+    def get_last_messages(channel : String, count : Int)
+      @storage_mutex.synchronize do
+        @storage.select { |msg| msg.channel == channel }.last(count)
+      end
+    end
   end
 end

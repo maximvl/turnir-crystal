@@ -108,6 +108,12 @@ module Turnir::Client
     STREAMS_STATUS_MAP.map { |k, v| [k.downcase, v.status.to_s.downcase] }.to_h
   end
 
+  def clear_all_storages
+    CLIENTS.each do |_, client|
+      client.storage.clear
+    end
+  end
+
   def client_restarter
     loop do
       sleep 3.minutes
