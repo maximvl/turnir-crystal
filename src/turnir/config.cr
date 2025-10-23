@@ -25,9 +25,15 @@ module Turnir::Config
   TWITCH_CLIENT_SECRET = ENV.fetch("TWITCH_CLIENT_SECRET", "NO_CLIENT_SECRET")
   @@twitch_access_token : String = ""
 
-  KICK_OAUTH_TOKEN  = ENV.fetch("KICK_OAUTH", "NO_TOKEN")
+  KICK_OAUTH_TOKEN = ENV.fetch("KICK_OAUTH", "NO_TOKEN")
 
-  INACTIVE_TIMEOUT_MINS = ENV.fetch("INACTIVE_TIMEOUT_MINS", "30").to_f
+  def get_twitch_token
+    @@twitch_access_token
+  end
+
+  def set_twitch_token(token : String)
+    @@twitch_access_token = token
+  end
 
   def get_twitch_token
     @@twitch_access_token

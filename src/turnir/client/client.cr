@@ -13,6 +13,13 @@ module Turnir::Client
     KICK
   end
 
+  DOMAIN_TO_CLIENT_TYPE = {
+    "vkvideo.ru"  => ClientType::VKVIDEO,
+    "twitch.tv"   => ClientType::TWITCH,
+    "goodgame.ru" => ClientType::GOODGAME,
+    "kick.com"    => ClientType::KICK,
+  }
+
   alias ClientModule = Turnir::Client::VkWebsocket | Turnir::Client::TwitchWebsocket | Turnir::Client::GoodgameWebsocket | Turnir::Client::KickClient
 
   def log(msg)
@@ -50,10 +57,10 @@ module Turnir::Client
     property storage : Turnir::ChatStorage::Storage
     property channels_map = {} of String => String
 
-    def initialize(client_type : ClientType, mod : ClientModule, stop_timeout : Time::Span | Nil = nil)
+    def initialize(client_type : ClientType, mod : ClientModule)
       @client_type = client_type
       @mod = mod
-      @storage = Turnir::ChatStorage::Storage.new(stop_timeout)
+      @storage = Turnir::ChatStorage::Storage.new
     end
   end
 
@@ -99,34 +106,6 @@ module Turnir::Client
 
   def get_connections_statuses
     STREAMS_STATUS_MAP.map { |k, v| [k.downcase, v.status.to_s.downcase] }.to_h
-  end
-
-  def get_clients_last_access
-    CLIENTS.map { |client_type, client| [client_type.to_s.downcase, client.storage.last_access.to_s] }.to_h
-  end
-
-  def clear_messages(client_type : ClientType)
-    client = CLIENTS[client_type]
-    client.storage.clear
-  end
-
-  def client_auto_stopper
-    loop do
-      CLIENTS.each do |client_type, client|
-        # log "Checking client: #{client_type.to_s}, #{client.storage.last_access.to_s}"
-        if client.storage.should_stop?
-          if client.fiber && !client.fiber.try &.dead?
-            log "Stopping client: #{client_type.to_s}"
-          end
-          client.mod.stop
-          client.storage.clear
-          client.fiber = nil
-          clear_streams_for_client(client_type)
-        end
-      end
-
-      sleep 60.seconds
-    end
   end
 
   def stream_activity_checker

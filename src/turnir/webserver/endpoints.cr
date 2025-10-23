@@ -10,7 +10,7 @@ module Turnir::Webserver
   extend self
 
   URL_MAP = {
-    /^\/external\/kick-hook$/                  => ->kick_web_hook(HTTP::Server::Context),
+    /^\/external\/kick-hook$/ => ->kick_web_hook(HTTP::Server::Context),
   }
 
   class MethodNotSupported < Exception

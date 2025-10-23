@@ -28,7 +28,6 @@ module Turnir::ChatStorage
     end
 
     def get_messages(channel : String, since : Int64, text_filter : String)
-      @last_access = Time.utc
       # puts "Fetching messages for #{channel}"
       # puts "Messages: #{Storage.size}"
       @storage_mutex.synchronize do
