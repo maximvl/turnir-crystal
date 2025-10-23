@@ -1,16 +1,9 @@
-name: turnir-crystal
+name: aukus-chat-reader
 version: 0.1.0
 
-authors:
-  - your-name-here <your-email-here>
-
-targets:
-  turnir-crystal:
-    main: src/turnir-crystal.cr
-
 dependencies:
-  sqlite3:
-    github: crystal-lang/crystal-sqlite3
+  mysql:
+    github: crystal-mysql/mysql
 
 crystal: ">= 1.12.1"
 
