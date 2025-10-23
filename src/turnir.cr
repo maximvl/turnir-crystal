@@ -117,4 +117,8 @@ spawn do
   Turnir::Client.client_restarter
 end
 
+spawn do
+  Turnir::Client.log_random_message
+end
+
 Turnir::Webserver.start

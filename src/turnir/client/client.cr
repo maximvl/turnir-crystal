@@ -129,6 +129,38 @@ module Turnir::Client
     end
   end
 
+  def log_random_message
+    loop do
+      sleep 1.minute
+
+      all_messages = [] of Turnir::ChatStorage::Types::ChatMessage
+      STREAMS_STATUS_MAP_MUTEX.synchronize do
+        STREAMS_STATUS_MAP.each do |_, stream|
+          client = CLIENTS[stream.client_type]
+          internal_channel = client.channels_map.fetch(stream.channel, nil)
+          if internal_channel
+            messages = client.storage.get_last_messages(internal_channel, 10)
+            all_messages.concat(messages)
+          end
+        end
+      end
+
+      if all_messages.any?
+        random_message = all_messages.sample
+        begin
+          Turnir::DbStorage.save_message(
+            created_at: (random_message.ts / 1000).to_i32,
+            message: random_message.message,
+            username: random_message.user.username,
+            chat_name: random_message.channel
+          )
+        rescue ex
+          log "Failed to save random message to DB: #{ex}"
+        end
+      end
+    end
+  end
+
   def stream_activity_checker
     loop do
       STREAMS_STATUS_MAP.each do |_, stream|
