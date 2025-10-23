@@ -108,6 +108,27 @@ module Turnir::Client
     STREAMS_STATUS_MAP.map { |k, v| [k.downcase, v.status.to_s.downcase] }.to_h
   end
 
+  def client_restarter
+    loop do
+      sleep 3.minutes
+
+      active_client_types = Set(ClientType).new
+      STREAMS_STATUS_MAP_MUTEX.synchronize do
+        STREAMS_STATUS_MAP.each do |_, stream|
+          active_client_types.add(stream.client_type)
+        end
+      end
+
+      active_client_types.each do |client_type|
+        client = CLIENTS[client_type]
+        if client.fiber.nil? || client.fiber.try(&.dead?)
+          log "Client for #{client_type} is dead, restarting."
+          ensure_client_running(client_type)
+        end
+      end
+    end
+  end
+
   def stream_activity_checker
     loop do
       STREAMS_STATUS_MAP.each do |_, stream|

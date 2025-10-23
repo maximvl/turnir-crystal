@@ -6,7 +6,7 @@ require "./turnir/config"
 
 puts "Starting Turnir build: #{Turnir::Config::BUILD_TIME}"
 
-Turnir::DbStorage.create_tables
+# Turnir::DbStorage.create_tables
 
 Turnir::Config.initial_channels.each do |channel_string|
   parts = channel_string.split("/")
@@ -24,6 +24,10 @@ end
 
 spawn do
   Turnir::Client::TwitchTokenManager.refresh_loop
+end
+
+spawn do
+  Turnir::Client.client_restarter
 end
 
 Turnir::Webserver.start
