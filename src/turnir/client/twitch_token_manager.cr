@@ -54,7 +54,7 @@ module Turnir::Client::TwitchTokenManager
   def load_token_response : TokenResponse | Nil
     if File.exists?(TOKEN_FILENAME)
       TokenResponse.from_json(
-        JSON.parse(File.read(TOKEN_FILENAME)).to_json
+        File.read(TOKEN_FILENAME)
       )
     else
       nil

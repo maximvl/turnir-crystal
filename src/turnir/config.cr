@@ -1,3 +1,7 @@
+require "dotenv"
+
+Dotenv.load
+
 module Turnir::Config
   extend self
 
@@ -23,7 +27,7 @@ module Turnir::Config
   end
 
   def channels_api_url
-    ENV.fetch("CHANNELS_API_URL", "https://api.eventlab.dev/users?is_active=1&events=aukus4")
+    ENV.fetch("CHANNELS_API_URL", "https://api.eventlab.dev/api/users?is_active=1&events=aukus4")
   end
 
   TWITCH_OAUTH_TOKEN = ENV.fetch("TWITCH_OAUTH", "NO_TOKEN")

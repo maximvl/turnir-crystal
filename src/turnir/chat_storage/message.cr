@@ -1,7 +1,7 @@
 require "./types"
 require "../parser/vk"
-require "../parser/nuum"
 require "../parser/goodgame"
+require "../parser/kick"
 
 module Turnir::ChatStorage::Types
   struct ChatMessage
@@ -46,19 +46,6 @@ module Turnir::ChatStorage::Types
       new(id: message_id.to_s, ts: created_at, message: text, user: user, vk_fields: vk_fields, channel: message.push.channel)
     end
 
-    def self.from_nuum_message(message : Turnir::Parser::Nuum::Event, channel : String)
-      # convert date "2024-12-26T23:14:59.859Z" to int
-      created_at = Time.parse(message.timestamp, "%Y-%m-%dT%H:%M:%S.%LZ", Time::Location::UTC).to_unix
-
-      username = message.author.login
-      user_id = message.author.id
-
-      text = message.eventData.text.strip
-
-      user = ChatUser.new(id: user_id.to_s, username: username)
-      new(id: message.id.to_s, ts: created_at, message: text, user: user, channel: channel)
-    end
-
     def self.from_goodgame_message(data : Turnir::Parser::Goodgame::MessageData)
       created_at = data.timestamp * 1000
       message_id = data.message_id
@@ -81,21 +68,6 @@ module Turnir::ChatStorage::Types
 
       user = ChatUser.new(id: user_id.to_s, username: username)
       new(id: message_id, ts: created_at, message: message.content, user: user, channel: channel)
-    end
-
-    def self.from_youtube_message(message : Turnir::Parser::Youtube::ChatItem, channel : String)
-      # created_at = Time.utc.to_unix_ms
-      message_id = message.id
-
-      username = message.authorDetails.displayName
-      user_id = message.authorDetails.channelId
-
-      created_at_string = message.snippet.publishedAt
-      created_at = Time.parse(created_at_string, "%Y-%m-%dT%H:%M:%S.%6N%z", Time::Location::UTC).to_unix_ms
-
-      user = ChatUser.new(id: user_id.to_s, username: username)
-      text = message.snippet.displayMessage
-      new(id: message_id, ts: created_at, message: text, user: user, channel: channel)
     end
   end
 end

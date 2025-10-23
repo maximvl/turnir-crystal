@@ -3,7 +3,6 @@ require "http/client"
 require "json"
 require "../client/client"
 require "../config"
-require "./serializers"
 require "./utils"
 
 module Turnir::Webserver

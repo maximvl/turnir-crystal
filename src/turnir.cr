@@ -86,6 +86,7 @@ end
 channels_by_platform = Hash(Turnir::Client::ClientType, Array(String)).new
 
 fetch_initial_channels.each do |channel_string|
+  puts "Processing channel: #{channel_string}"
   parts = channel_string.split("/")
   if parts.size == 2
     domain, channel_name = parts
@@ -99,6 +100,10 @@ fetch_initial_channels.each do |channel_string|
   end
 end
 
+spawn do
+  Turnir::Client::TwitchTokenManager.refresh_loop
+end
+
 channels_by_platform.each do |platform, channels|
   Turnir::Client.ensure_client_running(platform)
   channels.each do |channel_name|
@@ -106,9 +111,7 @@ channels_by_platform.each do |platform, channels|
   end
 end
 
-spawn do
-  Turnir::Client::TwitchTokenManager.refresh_loop
-end
+
 
 spawn do
   Turnir::Client.client_restarter
