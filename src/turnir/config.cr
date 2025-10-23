@@ -18,12 +18,12 @@ module Turnir::Config
     ENV.fetch("PORT", "8080").to_i
   end
 
-  def initial_channels
-    ENV.fetch("INITIAL_CHANNELS", "").split(",").map(&.strip).reject(&.empty?)
-  end
-
   def client_restarter_interval_seconds
     ENV.fetch("CLIENT_RESTARTER_INTERVAL_SECONDS", "180").to_i
+  end
+
+  def channels_api_url
+    ENV.fetch("CHANNELS_API_URL", "")
   end
 
   TWITCH_OAUTH_TOKEN = ENV.fetch("TWITCH_OAUTH", "NO_TOKEN")
@@ -34,14 +34,6 @@ module Turnir::Config
   @@twitch_access_token : String = ""
 
   KICK_OAUTH_TOKEN = ENV.fetch("KICK_OAUTH", "NO_TOKEN")
-
-  def get_twitch_token
-    @@twitch_access_token
-  end
-
-  def set_twitch_token(token : String)
-    @@twitch_access_token = token
-  end
 
   def get_twitch_token
     @@twitch_access_token
