@@ -7,15 +7,13 @@ module Turnir::ChatStorage
     property storage : Array(Turnir::ChatStorage::Types::ChatMessage)
     property storage_mutex : Mutex
     property last_access : Time
-    property stop_timeout : Time::Span
 
     MESSAGES_LIMIT = 5000
 
-    def initialize(stop_timeout : Time::Span | Nil = Nil)
+    def initialize()
       @storage = [] of Turnir::ChatStorage::Types::ChatMessage
       @storage_mutex = Mutex.new
       @last_access = Time.utc
-      @stop_timeout = stop_timeout || Turnir::Config::INACTIVE_TIMEOUT_MINS.minutes
     end
 
     def add_message(msg : Turnir::ChatStorage::Types::ChatMessage)
