@@ -163,6 +163,7 @@ module Turnir::Client
         rescue ex
           log "Failed to save random message to DB: #{ex}"
         end
+        clear_all_storages
       end
     end
   end
