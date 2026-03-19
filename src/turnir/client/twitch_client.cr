@@ -47,11 +47,13 @@ module Turnir::Client::TwitchWebsocket
     end
 
     websocket.on_message do |msg|
+      msg = msg.strip()
       if msg == "PING :tmi.twitch.tv"
         websocket.send("PONG :tmi.twitch.tv")
+        log "Ping -> Pong"
         next
       end
-      # log "WS message: #{msg}"
+      # log "WS message: [[#{msg}]]"
       parsed = parse_message(msg)
       # log "Parsed message: #{parsed.inspect}"
       if parsed
@@ -168,6 +170,7 @@ module Turnir::Client::TwitchWebsocket
     badges = [] of Turnir::Parser::Twitch::BadgeVersion
     color = nil
     display_name = nil
+    highlighted = false
 
     # log "parsincg badges: #{badges_str}"
 
@@ -191,13 +194,16 @@ module Turnir::Client::TwitchWebsocket
         color = part.split("=")[1]
       elsif part.starts_with?("display-name=")
         display_name = part.split("=")[1]
+      elsif part.starts_with?("msg-id")
+        highlighted = part.split("=")[1] == "highlighted-message"
       end
     end
 
     Turnir::Parser::Twitch::UserInfo.new(
       badges: badges,
       color: color,
-      display_name: display_name
+      display_name: display_name,
+      highlighted: highlighted,
     )
   end
 

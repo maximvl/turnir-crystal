@@ -4,11 +4,13 @@ module Turnir::Parser::Twitch
     property color : String | Nil
     property display_name : String | Nil
     property badges : Array(BadgeVersion)
+    property highlighted : Bool
 
-    def initialize(color : String | Nil, display_name : String | Nil, badges : Array(BadgeVersion))
+    def initialize(color : String | Nil, display_name : String | Nil, badges : Array(BadgeVersion), highlighted : Bool)
       @color = color
       @display_name = display_name
       @badges = badges
+      @highlighted = highlighted
     end
   end
 
