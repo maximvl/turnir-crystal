@@ -18,7 +18,7 @@ module Turnir::Client::TwitchTokenManager
 
   TOKEN_FILENAME = "twitch_token.json"
   REFRESH_WINDOW = 10.minutes.to_i
-  CHECK_INTERVAL = 5.minutes.to_i
+  CHECK_INTERVAL = 5.minutes
 
   def log(msg)
     print "[TwitchToken] "
