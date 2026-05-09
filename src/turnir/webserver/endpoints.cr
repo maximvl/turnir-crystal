@@ -493,7 +493,7 @@ module Turnir::Webserver
 
   def start
     server = HTTP::Server.new do |context|
-      context.response.headers["Access-Control-Allow-Origin"] = "http://localhost:5173"
+      context.response.headers["Access-Control-Allow-Origin"] = "http://localhost:5174"
       context.response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
       context.response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
 
@@ -538,14 +538,10 @@ module Turnir::Webserver
       end
       time_passed = Time.utc - start
 
+      paths_to_skip = ["/chat_messages", "/loto_winners", "/stream_info", "/kick-hook"]
+
       if context.response.status == HTTP::Status::OK
-        if path.ends_with?("/chat_messages")
-          next
-        end
-        if path.ends_with?("/loto_winners")
-          next
-        end
-        if path.ends_with?("/stream_info")
+        if paths_to_skip.includes?(path)
           next
         end
       end
