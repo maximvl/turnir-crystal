@@ -4,6 +4,18 @@ Turnir backend in Crystal
 
 It handles multiple processes better than Python.
 
+# Building
+
+```sh
+docker build -f Dockerfile.build -t crystal-api .
+```
+
+Extracting binary:
+
+```sh
+docker run --rm -v $(pwd)/bin:/out crystal-api cp /app/bin/turnir.bin /out/
+```
+
 ## Installation
 
 TODO: Write installation instructions here
