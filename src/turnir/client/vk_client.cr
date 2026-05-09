@@ -25,6 +25,12 @@ module Turnir::Client::VkWebsocket
     puts msg
   end
 
+  def verbose_log(msg)
+    if Turnir::Config::VERBOSE
+      log msg
+    end
+  end
+
   def start(sync_channel : Channel(Nil), storage : Turnir::ChatStorage::Storage, channels_map : Hash(String, String))
     app_config = get_vk_app_config()
     if app_config.nil?
@@ -85,7 +91,7 @@ module Turnir::Client::VkWebsocket
         channel_id = @@subscriptions_map.fetch(parsed.id, nil)
         channel_name = @@reverse_channels_map.fetch(channel_id, nil)
         if channel_name
-          log "Already subscribed to #{channel_name}"
+          verbose_log "Already subscribed to #{channel_name}"
           Turnir::Client.on_subscribe(
             Turnir::Client::ClientType::VKVIDEO,
             channel_name,
@@ -101,7 +107,7 @@ module Turnir::Client::VkWebsocket
       channel_id = @@subscriptions_map.fetch(parsed.id, nil)
       channel_name = @@reverse_channels_map.fetch(channel_id, nil)
       if channel_name
-        log "Subscribed to #{channel_name}"
+        verbose_log "Subscribed to #{channel_name}"
         Turnir::Client.on_subscribe(
           Turnir::Client::ClientType::VKVIDEO,
           channel_name,

@@ -23,6 +23,12 @@ module Turnir::Client::TwitchWebsocket
     puts msg
   end
 
+  def verbose_log(msg)
+    if Turnir::Config::VERBOSE
+      log msg
+    end
+  end
+
   def start(sync_channel : Channel(Nil), storage : Turnir::ChatStorage::Storage, channels_map : Hash(String, String))
     @@channels_map = channels_map
     @@reverse_channels_map = @@channels_map.invert
@@ -50,7 +56,7 @@ module Turnir::Client::TwitchWebsocket
       msg = msg.strip()
       if msg == "PING :tmi.twitch.tv"
         websocket.send("PONG :tmi.twitch.tv")
-        log "Ping -> Pong"
+        verbose_log "Ping -> Pong"
         next
       end
       # log "WS message: [[#{msg}]]"
@@ -91,7 +97,7 @@ module Turnir::Client::TwitchWebsocket
 
     if @@channel_badges_map.fetch(internal_channel, nil).nil?
       @@channel_badges_map[internal_channel] = fetch_badges(channel_name)
-      log "Channel #{channel_name} badges fetched: #{@@channel_badges_map[internal_channel].size}"
+      verbose_log "Channel #{channel_name} badges fetched: #{@@channel_badges_map[internal_channel].size}"
     end
 
     websocket.send("JOIN ##{channel_name}")

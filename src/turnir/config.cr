@@ -11,7 +11,7 @@ module Turnir::Config
   end
 
   def webserver_port
-    ENV.fetch("PORT", "8080").to_i
+    ENV.fetch("PORT", "8088").to_i
   end
 
   TWITCH_OAUTH_TOKEN = ENV.fetch("TWITCH_OAUTH", "NO_TOKEN")
@@ -28,6 +28,8 @@ module Turnir::Config
   YOUTUBE_INACTIVE_TIMEOUT_MINS = ENV.fetch("YOUTUBE_INACTIVE_TIMEOUT_MINS", "5").to_f
 
   INACTIVE_TIMEOUT_MINS = ENV.fetch("INACTIVE_TIMEOUT_MINS", "30").to_f
+
+  VERBOSE = ENV.fetch("VERBOSE", "false") == "true"
 
   def get_twitch_token
     @@twitch_access_token

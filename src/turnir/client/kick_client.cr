@@ -13,6 +13,12 @@ module Turnir::Client::KickClient
     puts msg
   end
 
+  def verbose_log(msg)
+    if Turnir::Config::VERBOSE
+      log msg
+    end
+  end
+
   @@storage : Turnir::ChatStorage::Storage | Nil = nil
   @@channels_map = {} of String => String
   @@channel_to_broadcaster = {} of String => Int64
@@ -60,7 +66,7 @@ module Turnir::Client::KickClient
       parsed = Turnir::Parser::Kick::ChatMessage.from_json(msg)
       if parsed
         # Process the parsed message
-        log "Parsed message: #{parsed}"
+        verbose_log "Parsed message: #{parsed}"
         msg = Turnir::ChatStorage::Types::ChatMessage.from_kick_message(parsed)
         @@channels_map[msg.channel] = msg.channel
         @@storage.try { |s|
@@ -146,7 +152,7 @@ module Turnir::Client::KickClient
   def unsubscribe_from_all_channels
     qs = @@subscriptions.map { |s| "id=#{s.id}" }.join("&")
     if qs.empty?
-      log "No subscriptions to unsubscribe from"
+      verbose_log "No subscriptions to unsubscribe from"
       return
     end
 
