@@ -487,6 +487,7 @@ module Turnir::Webserver
       log "Failed to handle kick message: #{ex.inspect}"
     end
 
+    context.response.status = HTTP::Status::OK
     context.response.content_type = "application/json"
     context.response.print ({"status" => "ok"}).to_json
   end
