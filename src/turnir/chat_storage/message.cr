@@ -79,7 +79,12 @@ module Turnir::ChatStorage::Types
       user_id = message.sender.user_id
       channel = message.broadcaster.channel_slug
 
-      user = ChatUser.new(id: user_id.to_s, username: username)
+      kick_fields = KickUserFields.new(
+        username_color: message.sender.identity.username_color,
+        badges: message.sender.identity.badges,
+      )
+
+      user = ChatUser.new(id: user_id.to_s, username: username, kick_fields: kick_fields)
       new(id: message_id, ts: created_at, message: message.content, user: user, channel: channel)
     end
 

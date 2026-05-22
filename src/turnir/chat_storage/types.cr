@@ -1,6 +1,7 @@
 require "json"
 require "../parser/vk.cr"
 require "../parser/twitch"
+require "../parser/kick"
 
 module Turnir::ChatStorage::Types
   struct VkUserFields
@@ -21,6 +22,18 @@ module Turnir::ChatStorage::Types
     end
   end
 
+  struct KickUserFields
+    include JSON::Serializable
+
+    property username_color : String
+    property badges : Array(Turnir::Parser::Kick::Badge)
+
+    def initialize(username_color : String, badges : Array(Turnir::Parser::Kick::Badge))
+      @username_color = username_color
+      @badges = badges
+    end
+  end
+
   struct ChatUser
     include JSON::Serializable
 
@@ -28,12 +41,14 @@ module Turnir::ChatStorage::Types
     property username : String
     property vk_fields : VkUserFields?
     property twitch_fields : Turnir::Parser::Twitch::UserInfo?
+    property kick_fields : KickUserFields?
 
-    def initialize(id : String, username : String, vk_fields : VkUserFields? = nil, twitch_fields : Turnir::Parser::Twitch::UserInfo? = nil)
+    def initialize(id : String, username : String, vk_fields : VkUserFields? = nil, twitch_fields : Turnir::Parser::Twitch::UserInfo? = nil, kick_fields : KickUserFields? = nil)
       @id = id
       @username = username
       @vk_fields = vk_fields
       @twitch_fields = twitch_fields
+      @kick_fields = kick_fields
     end
   end
 
